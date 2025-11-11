@@ -1,10 +1,11 @@
 "use client";
 
 import useSWR from "swr";
-import Image from "next/image";
-import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { StarfieldBackground } from "@/components/StarfieldBackground";
+import { Navbar } from "@/components/Navbar";
+import { Hero } from "@/components/Hero";
+import { MovieGrid } from "@/components/MovieGrid";
+import { Footer } from "@/components/Footer";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -12,89 +13,86 @@ interface Movie {
   id: number;
   title: string;
   poster_path: string | null;
+  backdrop_path: string | null;
   vote_average: number;
+  release_date: string;
+  genre_ids: number[];
 }
 
 export default function Home() {
-  const { data, error, isLoading } = useSWR(
+  const { data: trendingData, error: trendingError, isLoading: trendingLoading } = useSWR(
     "http://localhost:8000/api/movies/trending",
     fetcher,
   );
 
-  if (error) {
+  const { data: popularData, error: popularError, isLoading: popularLoading } = useSWR(
+    "http://localhost:8000/api/movies/popular",
+    fetcher,
+  );
+
+  // Get featured movie (first trending movie)
+  const featuredMovie = trendingData?.data?.results?.[0];
+
+  // Transform movie data to match component interface
+  const transformMovie = (movie: Movie) => ({
+    id: movie.id,
+    title: movie.title,
+    poster: movie.poster_path
+      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+      : 'https://via.placeholder.com/500x750?text=No+Image',
+    rating: movie.vote_average,
+    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '2024',
+    genres: ['Action', 'Sci-Fi'], // TODO: Map genre_ids to actual genre names
+  });
+
+  const trendingMovies = trendingData?.data?.results?.slice(1, 13).map(transformMovie) || [];
+  const popularMovies = popularData?.data?.results?.slice(0, 12).map(transformMovie) || [];
+
+  const featuredMovieData = featuredMovie ? {
+    title: featuredMovie.title,
+    description: featuredMovie.overview || 'No description available.',
+    rating: featuredMovie.vote_average,
+    poster: featuredMovie.poster_path
+      ? `https://image.tmdb.org/t/p/w500${featuredMovie.poster_path}`
+      : 'https://via.placeholder.com/500x750?text=No+Image',
+    backdrop: featuredMovie.backdrop_path
+      ? `https://image.tmdb.org/t/p/original${featuredMovie.backdrop_path}`
+      : 'https://via.placeholder.com/1920x1080?text=No+Image'
+  } : null;
+
+  if (trendingLoading || popularLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="min-h-screen bg-[#050510] dark overflow-x-hidden flex items-center justify-center">
+        <div className="text-cyan-400">Loading...</div>
+      </div>
+    );
+  }
+
+  if (trendingError || popularError) {
+    return (
+      <div className="min-h-screen bg-[#050510] dark overflow-x-hidden flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">
             Error Loading Movies
           </h1>
           <p className="text-gray-600">
-            Failed to fetch trending movies. Please try again later.
+            Failed to fetch movies. Please try again later.
           </p>
         </div>
       </div>
     );
   }
 
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Trending Movies</h1>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <Card key={i} className="animate-pulse">
-              <CardContent className="p-0">
-                <div className="aspect-[2/3] bg-gray-300 rounded-t-lg"></div>
-                <div className="p-4">
-                  <div className="h-4 bg-gray-300 rounded mb-2"></div>
-                  <div className="h-4 bg-gray-300 rounded w-1/2"></div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const movies: Movie[] = data?.data?.results || [];
-
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Trending Movies</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {movies.map((movie) => (
-          <Link key={movie.id} href={`/movies/${movie.id}`}>
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
-              <CardContent className="p-0">
-                <div className="aspect-[2/3] relative rounded-t-lg overflow-hidden">
-                  {movie.poster_path ? (
-                    <Image
-                      src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
-                      alt={movie.title}
-                      fill
-                      className="object-cover"
-                      sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gray-300 flex items-center justify-center">
-                      <span className="text-gray-500">No Image</span>
-                    </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-sm mb-2 line-clamp-2">
-                    {movie.title}
-                  </h3>
-                  <Badge variant="secondary">
-                    ⭐ {movie.vote_average.toFixed(1)}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+    <div className="min-h-screen bg-[#050510] dark overflow-x-hidden">
+      <StarfieldBackground />
+      <Navbar />
+      <main>
+        {featuredMovieData && <Hero movie={featuredMovieData} />}
+        <MovieGrid title="Trending Now" movies={trendingMovies} />
+        <MovieGrid title="Popular This Week" movies={popularMovies} />
+      </main>
+      <Footer />
     </div>
   );
 }

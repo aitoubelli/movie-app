@@ -54,6 +54,46 @@ export async function getTrendingMovies(page = 1) {
     }
 }
 
+export async function getPopularMovies(page = 1) {
+    try {
+        const response = await tmdbApi.get('/movie/popular', {
+            params: { page },
+        });
+
+        return {
+            success: true,
+            data: response.data,
+            page: response.data.page,
+            totalPages: response.data.total_pages,
+            totalResults: response.data.total_results,
+        };
+    } catch (error) {
+        console.error('Error fetching popular movies:', error.response?.data || error.message);
+
+        if (error.response?.status === 404) {
+            return {
+                success: false,
+                error: 'Popular movies not found',
+                status: 404,
+            };
+        }
+
+        if (error.response?.status === 429) {
+            return {
+                success: false,
+                error: 'Rate limit exceeded. Please try again later.',
+                status: 429,
+            };
+        }
+
+        return {
+            success: false,
+            error: 'Failed to fetch popular movies',
+            status: error.response?.status || 500,
+        };
+    }
+}
+
 export async function getMovieById(id) {
     try {
         const response = await tmdbApi.get(`/movie/${id}`, {
