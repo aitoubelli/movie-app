@@ -1,0 +1,29 @@
+{
+  "name": "movie-app-back",
+  "version": "0.0.1",
+  "description": "the backend for movie-app",
+  "license": "ISC",
+  "author": "salah",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "nodemon server.js",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "express": "^5.1.0",
+    "globals": "^16.5.0",
+    "mongoose": "^8.19.3",
+    "prettier": "^3.6.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
