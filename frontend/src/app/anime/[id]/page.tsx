@@ -27,16 +27,18 @@ interface Genre {
   name: string;
 }
 
-interface Movie {
+interface Anime {
   id: number;
-  title: string;
+  name: string;
   poster_path: string | null;
   backdrop_path: string | null;
-  release_date: string;
+  first_air_date: string;
   overview: string;
   vote_average: number;
   vote_count: number;
-  runtime: number | null;
+  episode_run_time: number[];
+  number_of_seasons: number;
+  number_of_episodes: number;
   genres: Genre[];
   credits: {
     cast: CastMember[];
@@ -47,17 +49,17 @@ interface Movie {
   }>;
 }
 
-export default function MovieDetail({ params }: { params: Promise<{ id: string }> }) {
+export default function AnimeDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
 
   const { data, error, isLoading } = useSWR(
-    `/api/movies/${resolvedParams.id}`,
+    `/api/anime/${resolvedParams.id}`,
     fetcher,
   );
 
   const { data: recommendationsData } = useSWR(
-    `/api/movies/${resolvedParams.id}/recommendations`,
+    `/api/anime/${resolvedParams.id}/recommendations`,
     fetcher,
   );
 
@@ -83,10 +85,10 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
           </motion.div>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-red-400 mb-4">
-              Error Loading Movie
+              Error Loading Anime
             </h1>
             <p className="text-cyan-100/60">
-              Failed to fetch movie details. Please try again later.
+              Failed to fetch anime details. Please try again later.
             </p>
           </div>
         </div>
@@ -132,9 +134,9 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
     );
   }
 
-  const movie: Movie = data?.data;
+  const anime: Anime = data?.data;
 
-  if (!movie) {
+  if (!anime) {
     return (
       <div className="min-h-screen bg-[#050510]">
         <Navbar />
@@ -156,10 +158,10 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
           </motion.div>
           <div className="text-center">
             <h1 className="text-2xl font-bold text-red-400 mb-4">
-              Movie Not Found
+              Anime Not Found
             </h1>
             <p className="text-cyan-100/60">
-              The movie you're looking for doesn't exist.
+              The anime you're looking for doesn't exist.
             </p>
           </div>
         </div>
@@ -167,15 +169,16 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
     );
   }
 
-  const topCast = movie.credits?.cast?.slice(0, 6) || [];
-  const recommendedMovies = recommendationsData?.data?.results?.slice(0, 12).map((rec: any) => ({
+  const topCast = anime.credits?.cast?.slice(0, 6) || [];
+  const recommendedAnime = recommendationsData?.data?.results?.slice(0, 12).map((rec: any) => ({
     id: rec.id,
-    title: rec.title,
+    title: rec.name || rec.title || 'Unknown Title',
     poster: rec.poster_path
       ? `https://image.tmdb.org/t/p/w500${rec.poster_path}`
       : 'https://via.placeholder.com/500x750?text=No+Image',
     rating: rec.vote_average,
-    year: rec.release_date ? new Date(rec.release_date).getFullYear().toString() : '2024',
+    year: rec.first_air_date ? new Date(rec.first_air_date).getFullYear().toString() :
+          rec.release_date ? new Date(rec.release_date).getFullYear().toString() : '2024',
     genres: rec.genre_ids?.slice(0, 2).map((id: number) => {
       // Simple genre mapping - in production you'd want a proper genre lookup
       const genreMap: { [key: number]: string } = {
@@ -223,8 +226,8 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
               <div className="relative">
                 <div className="absolute inset-0 blur-3xl bg-gradient-to-br from-cyan-400/30 to-violet-400/30" />
                 <ImageWithFallback
-                  src={movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Image'}
-                  alt={movie.title}
+                  src={anime.poster_path ? `https://image.tmdb.org/t/p/w500${anime.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Image'}
+                  alt={anime.name}
                   className="relative w-full aspect-[2/3] object-cover rounded-2xl border-2 border-cyan-500/30"
                   style={{ boxShadow: '0 0 60px rgba(6, 182, 212, 0.4)' }}
                 />
@@ -279,36 +282,36 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
             </div>
           </div>
 
-          {/* Right: Movie Info */}
+          {/* Right: Anime Info */}
           <div className="space-y-8">
             {/* Title and Meta */}
             <div>
               <h1 className="text-4xl md:text-5xl mb-2 bg-gradient-to-r from-cyan-200 via-white to-violet-200 bg-clip-text text-transparent">
-                {movie.title}
+                {anime.name}
               </h1>
               <p className="text-lg text-cyan-100/60 mb-4">
-                {new Date(movie.release_date).getFullYear()}
+                {new Date(anime.first_air_date).getFullYear()}
               </p>
 
               {/* Rating */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black/60 backdrop-blur-sm border border-yellow-500/30">
                   <Star className="w-5 h-5 text-yellow-400 fill-yellow-400" />
-                  <span className="text-yellow-100">{movie.vote_average.toFixed(1)}</span>
+                  <span className="text-yellow-100">{anime.vote_average.toFixed(1)}</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black/60 backdrop-blur-sm border border-cyan-500/20">
                   <Clock className="w-4 h-4 text-cyan-400" />
-                  <span className="text-cyan-100 text-sm">{movie.runtime ? `${movie.runtime} min` : 'N/A'}</span>
+                  <span className="text-cyan-100 text-sm">{anime.episode_run_time?.[0] ? `${anime.episode_run_time[0]} min` : 'N/A'}</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black/60 backdrop-blur-sm border border-violet-500/20">
                   <Calendar className="w-4 h-4 text-violet-400" />
-                  <span className="text-violet-200 text-sm">{new Date(movie.release_date).toLocaleDateString()}</span>
+                  <span className="text-violet-200 text-sm">{new Date(anime.first_air_date).toLocaleDateString()}</span>
                 </div>
               </div>
 
               {/* Genres */}
               <div className="flex flex-wrap gap-2 mb-6">
-                {movie.genres.map((genre) => (
+                {anime.genres.map((genre) => (
                   <span
                     key={genre.id}
                     className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500/20 to-violet-500/20 border border-cyan-500/30 text-cyan-200 text-sm backdrop-blur-sm"
@@ -325,24 +328,24 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
                 Overview
               </h2>
               <p className="text-lg text-cyan-100/80 leading-relaxed">
-                {movie.overview}
+                {anime.overview}
               </p>
             </div>
 
             {/* Production Info */}
-            {movie.production_companies && movie.production_companies.length > 0 && (
+            {anime.production_companies && anime.production_companies.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="p-4 rounded-xl bg-black/40 backdrop-blur-sm border border-cyan-500/20">
                   <p className="text-cyan-100/60 text-sm mb-1">Studio</p>
-                  <p className="text-cyan-100">{movie.production_companies[0].name}</p>
+                  <p className="text-cyan-100">{anime.production_companies[0].name}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-black/40 backdrop-blur-sm border border-cyan-500/20">
-                  <p className="text-cyan-100/60 text-sm mb-1">Rating</p>
-                  <p className="text-cyan-100">{movie.vote_average.toFixed(1)}/10</p>
+                  <p className="text-cyan-100/60 text-sm mb-1">Seasons</p>
+                  <p className="text-cyan-100">{anime.number_of_seasons}</p>
                 </div>
                 <div className="p-4 rounded-xl bg-black/40 backdrop-blur-sm border border-cyan-500/20">
-                  <p className="text-cyan-100/60 text-sm mb-1">Votes</p>
-                  <p className="text-cyan-100">{movie.vote_count.toLocaleString()}</p>
+                  <p className="text-cyan-100/60 text-sm mb-1">Episodes</p>
+                  <p className="text-cyan-100">{anime.number_of_episodes}</p>
                 </div>
               </div>
             )}
@@ -379,8 +382,8 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
           </div>
         </motion.div>
 
-        {/* Recommended Movies */}
-        {recommendedMovies.length > 0 && (
+        {/* Recommended Anime */}
+        {recommendedAnime.length > 0 && (
           <motion.section
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -391,8 +394,8 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
               Recommended For You
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {recommendedMovies.map((movie: any, index: number) => (
-                <MovieCard key={movie.id} movie={movie} index={index} />
+              {recommendedAnime.map((anime: any, index: number) => (
+                <MovieCard key={anime.id} movie={anime} index={index} category="anime" />
               ))}
             </div>
           </motion.section>
@@ -403,7 +406,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
       <TrailerModal
         isOpen={isTrailerOpen}
         onClose={() => setIsTrailerOpen(false)}
-        movieTitle={movie.title}
+        movieTitle={anime.name}
       />
       <Footer />
     </div>

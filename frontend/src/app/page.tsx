@@ -12,13 +12,15 @@ import { useState } from 'react';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-interface Movie {
+interface ContentItem {
   id: number;
   title: string;
+  name?: string; // For series/anime
   poster_path: string | null;
   backdrop_path: string | null;
   vote_average: number;
-  release_date: string;
+  release_date?: string;
+  first_air_date?: string; // For series/anime
   genre_ids: number[];
 }
 
@@ -30,35 +32,40 @@ export default function Home() {
   };
 
   const { data: trendingData, error: trendingError, isLoading: trendingLoading } = useSWR(
-    "/api/movies/trending",
+    activeCategory === 'movies' ? "/api/movies/trending" :
+    activeCategory === 'series' ? "/api/series/trending" :
+    "/api/anime/trending",
     fetcher,
   );
 
   const { data: popularData, error: popularError, isLoading: popularLoading } = useSWR(
-    "/api/movies/popular",
+    activeCategory === 'movies' ? "/api/movies/popular" :
+    activeCategory === 'series' ? "/api/series/popular" :
+    "/api/anime/popular",
     fetcher,
   );
 
   // Get featured movie (first trending movie)
   const featuredMovie = trendingData?.data?.results?.[0];
 
-  // Transform movie data to match component interface
-  const transformMovie = (movie: Movie) => ({
-    id: movie.id,
-    title: movie.title,
-    poster: movie.poster_path
-      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+  // Transform content data to match component interface
+  const transformContent = (item: ContentItem) => ({
+    id: item.id,
+    title: item.title || item.name || 'Unknown Title',
+    poster: item.poster_path
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
       : 'https://via.placeholder.com/500x750?text=No+Image',
-    rating: movie.vote_average,
-    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '2024',
+    rating: item.vote_average,
+    year: item.release_date ? new Date(item.release_date).getFullYear().toString() :
+          item.first_air_date ? new Date(item.first_air_date).getFullYear().toString() : '2024',
     genres: ['Action', 'Sci-Fi'], // TODO: Map genre_ids to actual genre names
   });
 
-  const trendingMovies = trendingData?.data?.results?.slice(1, 13).map(transformMovie) || [];
-  const popularMovies = popularData?.data?.results?.slice(0, 12).map(transformMovie) || [];
+  const trendingMovies = trendingData?.data?.results?.slice(1, 13).map(transformContent) || [];
+  const popularMovies = popularData?.data?.results?.slice(0, 12).map(transformContent) || [];
 
   const featuredMovieData = featuredMovie ? {
-    title: featuredMovie.title,
+    title: featuredMovie.title || featuredMovie.name || 'Unknown Title',
     description: featuredMovie.overview || 'No description available.',
     rating: featuredMovie.vote_average,
     poster: featuredMovie.poster_path
@@ -82,10 +89,10 @@ export default function Home() {
       <div className="min-h-screen bg-[#050510] dark overflow-x-hidden flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-red-600 mb-4">
-            Error Loading Movies
+            Error Loading Content
           </h1>
           <p className="text-gray-600">
-            Failed to fetch movies. Please try again later.
+            Failed to fetch content. Please try again later.
           </p>
         </div>
       </div>
@@ -190,8 +197,8 @@ export default function Home() {
           </motion.div>
         </div>
 
-        <MovieGrid title="Trending Now" movies={trendingMovies} />
-        <MovieGrid title="Popular This Week" movies={popularMovies} />
+        <MovieGrid title="Trending Now" movies={trendingMovies} category={activeCategory} />
+        <MovieGrid title="Popular This Week" movies={popularMovies} category={activeCategory} />
       </main>
       <Footer />
     </div>

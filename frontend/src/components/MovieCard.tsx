@@ -14,9 +14,10 @@ interface MovieCardProps {
     genres: string[];
   };
   index: number;
+  category?: 'movies' | 'series' | 'anime';
 }
 
-export function MovieCard({ movie, index }: MovieCardProps) {
+export function MovieCard({ movie, index, category = 'movies' }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
@@ -29,7 +30,7 @@ export function MovieCard({ movie, index }: MovieCardProps) {
       onHoverEnd={() => setIsHovered(false)}
       className="relative group cursor-pointer"
     >
-      <Link href={`/movies/${movie.id}`}>
+      <Link href={`/${category}/${movie.id}`}>
         <div className="relative overflow-hidden rounded-xl aspect-[2/3]">
           {/* Poster Image */}
           <Image
