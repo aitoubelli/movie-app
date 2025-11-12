@@ -31,7 +31,7 @@ export const addToWatchlist = async (req, res) => {
 
 export const removeFromWatchlist = async (req, res) => {
     try {
-        const { movieId } = req.body;
+        const { movieId } = req.params;
         const userId = req.user.uid;
 
         if (!validateMovieId(movieId)) {
