@@ -148,7 +148,10 @@ export async function getMovieRecommendations(id, page = 1) {
             totalResults: response.data.total_results,
         };
     } catch (error) {
-        console.error(`Error fetching recommendations for movie ${id}:`, error.response?.data || error.message);
+        console.error(
+            `Error fetching recommendations for movie ${id}:`,
+            error.response?.data || error.message,
+        );
 
         if (error.response?.status === 404) {
             return {
@@ -308,7 +311,10 @@ export async function getSeriesRecommendations(id, page = 1) {
             totalResults: response.data.total_results,
         };
     } catch (error) {
-        console.error(`Error fetching recommendations for series ${id}:`, error.response?.data || error.message);
+        console.error(
+            `Error fetching recommendations for series ${id}:`,
+            error.response?.data || error.message,
+        );
 
         if (error.response?.status === 404) {
             return {
@@ -478,7 +484,10 @@ export async function getAnimeRecommendations(id, page = 1) {
             totalResults: response.data.total_results,
         };
     } catch (error) {
-        console.error(`Error fetching recommendations for anime ${id}:`, error.response?.data || error.message);
+        console.error(
+            `Error fetching recommendations for anime ${id}:`,
+            error.response?.data || error.message,
+        );
 
         if (error.response?.status === 404) {
             return {

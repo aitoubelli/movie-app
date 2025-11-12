@@ -1,18 +1,22 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
+import mongoose from 'mongoose';
 import moviesRouter from './src/routes/movies.js';
 import seriesRouter from './src/routes/series.js';
 import animeRouter from './src/routes/anime.js';
 import authRouter from './src/routes/auth.js';
+import watchlistRouter from './src/routes/watchlist.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors({
-    origin: 'http://localhost:3000',
-    credentials: true
-}));
+app.use(
+    cors({
+        origin: 'http://localhost:3000',
+        credentials: true,
+    }),
+);
 
 app.get('/health', (req, res) => {
     const healthStatus = {
@@ -28,9 +32,23 @@ app.get('/', (req, res) => {
     res.send('Movie App Backend is running!');
 });
 
+
+mongoose
+    .connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/movie-app', {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    })
+    .then(() => {
+        console.log('Connected to MongoDB');
+    })
+    .catch((error) => {
+        console.error('MongoDB connection error:', error);
+    });
+
 app.use('/api/movies', moviesRouter);
 app.use('/api/series', seriesRouter);
 app.use('/api/anime', animeRouter);
+app.use('/api/watchlist', watchlistRouter);
 app.use('/api', authRouter);
 
 app.listen(PORT, () => {

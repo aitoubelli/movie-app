@@ -20,7 +20,7 @@ interface ContentItem {
   backdrop_path: string | null;
   vote_average: number;
   release_date?: string;
-  first_air_date?: string; // For series/anime
+  first_air_date?: string;
   genre_ids: number[];
 }
 
