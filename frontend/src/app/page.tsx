@@ -6,6 +6,7 @@ import { StarfieldBackground } from "@/components/StarfieldBackground";
 import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
 import { MovieGrid } from "@/components/MovieGrid";
+import { MovieCard } from "@/components/MovieCard";
 import { Footer } from "@/components/Footer";
 import { Film, Tv, Sparkles } from 'lucide-react';
 import { useState } from 'react';
@@ -45,6 +46,22 @@ export default function Home() {
     fetcher,
   );
 
+  // Fetch featured movie IDs
+  const { data: featuredIdsData, error: featuredIdsError, isLoading: featuredIdsLoading } = useSWR(
+    "/api/featured",
+    fetcher,
+  );
+
+  // Fetch full movie data for featured IDs in parallel
+  const { data: featuredMoviesData, error: featuredMoviesError, isLoading: featuredMoviesLoading } = useSWR(
+    featuredIdsData?.movieIds?.length > 0 ? featuredIdsData.movieIds.map((id: number) => `/api/movies/${id}`) : null,
+    async (urls: string[]) => {
+      if (!urls) return [];
+      const responses = await Promise.all(urls.map((url: string) => fetch(url).then(res => res.json())));
+      return responses.filter((response: any) => response.success).map((response: any) => response.data);
+    },
+  );
+
   // Get featured movie (first trending movie)
   const featuredMovie = trendingData?.data?.results?.[0];
 
@@ -64,6 +81,18 @@ export default function Home() {
   const trendingMovies = trendingData?.data?.results?.slice(1, 13).map(transformContent) || [];
   const popularMovies = popularData?.data?.results?.slice(0, 12).map(transformContent) || [];
 
+  // Transform featured movies data
+  const featuredMovies = featuredMoviesData?.map((movie: any) => ({
+    id: movie.id,
+    title: movie.title || 'Unknown Title',
+    poster: movie.poster_path
+      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+      : 'https://via.placeholder.com/500x750?text=No+Image',
+    rating: movie.vote_average || 0,
+    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '2024',
+    genres: movie.genres?.slice(0, 2).map((genre: any) => genre.name) || ['Action', 'Drama'],
+  })) || [];
+
   const featuredMovieData = featuredMovie ? {
     title: featuredMovie.title || featuredMovie.name || 'Unknown Title',
     description: featuredMovie.overview || 'No description available.',
@@ -76,7 +105,7 @@ export default function Home() {
       : 'https://via.placeholder.com/1920x1080?text=No+Image'
   } : null;
 
-  if (trendingLoading || popularLoading) {
+  if (trendingLoading || popularLoading || featuredIdsLoading) {
     return (
       <div className="min-h-screen bg-[#050510] dark overflow-x-hidden flex items-center justify-center">
         <div className="text-cyan-400">Loading...</div>
@@ -196,6 +225,47 @@ export default function Home() {
             </div>
           </motion.div>
         </div>
+
+        {/* Featured Now Section */}
+        {featuredMovies.length > 0 && (
+          <section className="py-16 px-4 md:px-8">
+            <div className="max-w-7xl mx-auto">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: '-100px' }}
+                transition={{ duration: 0.6 }}
+                className="mb-8"
+              >
+                <h2 className="text-3xl md:text-4xl bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent inline-block relative">
+                  Featured Now
+                  <div
+                    className="absolute -bottom-2 left-0 h-1 w-20 bg-gradient-to-r from-cyan-400 to-violet-400 rounded-full"
+                    style={{ boxShadow: '0 0 20px rgba(6, 182, 212, 0.6)' }}
+                  />
+                </h2>
+              </motion.div>
+
+              {/* Mobile: Horizontal scroll */}
+              <div className="md:hidden overflow-x-auto pb-4">
+                <div className="flex gap-4 min-w-max">
+                  {featuredMovies.map((movie, index) => (
+                    <div key={movie.id} className="flex-shrink-0 w-48">
+                      <MovieCard movie={movie} index={index} category="movies" enableWatchlistToggle={true} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Desktop: Grid */}
+              <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
+                {featuredMovies.map((movie, index) => (
+                  <MovieCard key={movie.id} movie={movie} index={index} category="movies" enableWatchlistToggle={true} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         <MovieGrid title="Trending Now" movies={trendingMovies} category={activeCategory} enableWatchlistToggle={true} />
         <MovieGrid title="Popular This Week" movies={popularMovies} category={activeCategory} enableWatchlistToggle={true} />
