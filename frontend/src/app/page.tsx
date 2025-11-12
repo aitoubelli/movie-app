@@ -99,7 +99,52 @@ export default function Home() {
       <main>
         {featuredMovieData && <Hero movie={featuredMovieData} />}
 
-        <div className="fixed left-0 top-1/2 -translate-y-1/2 z-50 p-4">
+        {/* Mobile Category Switcher - Horizontal with text */}
+        <div className="md:hidden px-4 py-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="flex justify-center"
+          >
+            <div className="flex items-center gap-2 p-3 rounded-2xl backdrop-blur-md bg-black/40 border border-cyan-500/30 max-w-fit">
+              {[
+                { id: 'movies' as const, label: 'Movies', icon: Film },
+                { id: 'series' as const, label: 'Series', icon: Tv },
+                { id: 'anime' as const, label: 'Anime', icon: Sparkles }
+              ].map((category) => {
+                const Icon = category.icon;
+                const isActive = activeCategory === category.id;
+
+                return (
+                  <motion.button
+                    key={category.id}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleCategoryChange(category.id)}
+                    className="relative px-4 py-2 rounded-xl transition-all flex items-center gap-2"
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="mobileActiveCategory"
+                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500"
+                        style={{ boxShadow: '0 0 30px rgba(6, 182, 212, 0.6)' }}
+                        transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-cyan-300'} transition-colors relative z-10`} />
+                    <span className={`${isActive ? 'text-white' : 'text-cyan-100/80'} transition-colors text-sm font-medium relative z-10`}>
+                      {category.label}
+                    </span>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* Desktop Category Switcher - Vertical icons only */}
+        <div className="fixed left-0 top-1/2 -translate-y-1/2 z-50 p-4 hidden md:block">
           <motion.div
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -125,10 +170,11 @@ export default function Home() {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleCategoryChange(category.id)}
                     className="relative px-6 py-3 rounded-xl transition-all"
+                    title={category.label}
                   >
                     {isActive && (
                       <motion.div
-                        layoutId="activeCategory"
+                        layoutId="desktopActiveCategory"
                         className="absolute inset-0 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500"
                         style={{ boxShadow: '0 0 30px rgba(6, 182, 212, 0.6)' }}
                         transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
@@ -136,9 +182,6 @@ export default function Home() {
                     )}
                     <div className="relative flex items-center gap-2">
                       <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-cyan-300'} transition-colors`} />
-                      <span className={`${isActive ? 'text-white' : 'text-cyan-100/80'} transition-colors`}>
-                        {category.label}
-                      </span>
                     </div>
                   </motion.button>
                 );
