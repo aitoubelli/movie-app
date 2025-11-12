@@ -1,8 +1,13 @@
 import { motion } from 'motion/react';
 import { Play, Star } from 'lucide-react';
+import { HeartIcon as HeartIconOutline } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
+import useSWR from 'swr';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 interface MovieCardProps {
   movie: {
@@ -15,10 +20,71 @@ interface MovieCardProps {
   };
   index: number;
   category?: 'movies' | 'series' | 'anime';
+  enableWatchlistToggle?: boolean;
 }
 
-export function MovieCard({ movie, index, category = 'movies' }: MovieCardProps) {
+export function MovieCard({ movie, index, category = 'movies', enableWatchlistToggle = false }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const { user } = useAuth();
+
+  // Fetch watchlist if user is authenticated and watchlist toggle is enabled
+  const { data: watchlistData, mutate: mutateWatchlist } = useSWR(
+    user && enableWatchlistToggle ? '/api/watchlist' : null,
+    async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch watchlist');
+      return response.json();
+    }
+  );
+
+  const isInWatchlist = watchlistData?.movieIds?.includes(movie.id) ?? false;
+
+  const toggleWatchlist = async () => {
+    if (!user) {
+      toast.error('Please sign in to manage your watchlist');
+      return;
+    }
+
+    const previousWatchlist = watchlistData;
+    const newIsInWatchlist = !isInWatchlist;
+
+    // Optimistic update
+    mutateWatchlist(
+      {
+        movieIds: newIsInWatchlist
+          ? [...(watchlistData?.movieIds || []), movie.id]
+          : (watchlistData?.movieIds || []).filter((id: number) => id !== movie.id)
+      },
+      false
+    );
+
+    try {
+      const response = await fetch(
+        newIsInWatchlist ? '/api/watchlist' : `/api/watchlist/${movie.id}`,
+        {
+          method: newIsInWatchlist ? 'POST' : 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: newIsInWatchlist ? JSON.stringify({ movieId: movie.id }) : undefined,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update watchlist');
+      }
+
+      toast.success(
+        newIsInWatchlist
+          ? 'Added to watchlist'
+          : 'Removed from watchlist'
+      );
+    } catch (error) {
+      // Revert optimistic update on error
+      mutateWatchlist(previousWatchlist, false);
+      toast.error('Failed to update watchlist. Please try again.');
+    }
+  };
 
   return (
     <motion.div
@@ -60,6 +126,24 @@ export function MovieCard({ movie, index, category = 'movies' }: MovieCardProps)
           <div
             className="absolute -inset-2 bg-gradient-to-br from-cyan-500/0 to-violet-500/0 group-hover:from-cyan-500/30 group-hover:to-violet-500/30 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 -z-10"
           />
+
+          {/* Watchlist Button */}
+          {user && enableWatchlistToggle && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWatchlist();
+              }}
+              className="absolute top-3 left-3 p-2 rounded-lg bg-black/60 backdrop-blur-sm border border-white/20 hover:bg-black/80 transition-colors"
+            >
+              {isInWatchlist ? (
+                <HeartIconSolid className="w-5 h-5 text-red-500" />
+              ) : (
+                <HeartIconOutline className="w-5 h-5 text-white" />
+              )}
+            </button>
+          )}
 
           {/* Rating Badge */}
           <div className="absolute top-3 right-3 flex items-center gap-1 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm border border-yellow-500/30">

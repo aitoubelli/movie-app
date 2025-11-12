@@ -197,8 +197,8 @@ export default function Home() {
           </motion.div>
         </div>
 
-        <MovieGrid title="Trending Now" movies={trendingMovies} category={activeCategory} />
-        <MovieGrid title="Popular This Week" movies={popularMovies} category={activeCategory} />
+        <MovieGrid title="Trending Now" movies={trendingMovies} category={activeCategory} enableWatchlistToggle={true} />
+        <MovieGrid title="Popular This Week" movies={popularMovies} category={activeCategory} enableWatchlistToggle={true} />
       </main>
       <Footer />
     </div>

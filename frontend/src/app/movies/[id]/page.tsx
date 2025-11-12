@@ -11,6 +11,8 @@ import { MovieCard } from "@/components/MovieCard";
 import { TrailerModal } from "@/components/TrailerModal";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { useAuth } from "@/context/AuthContext";
+import { toast } from "sonner";
 import { use } from "react";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -50,6 +52,7 @@ interface Movie {
 export default function MovieDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const { user } = useAuth();
 
   const { data, error, isLoading } = useSWR(
     `/api/movies/${resolvedParams.id}`,
@@ -60,6 +63,61 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
     `/api/movies/${resolvedParams.id}/recommendations`,
     fetcher,
   );
+
+  // Fetch watchlist if user is authenticated
+  const { data: watchlistData, mutate: mutateWatchlist } = useSWR(
+    user ? '/api/watchlist' : null,
+    fetcher,
+  );
+
+  const isInWatchlist = watchlistData?.movieIds?.includes(parseInt(resolvedParams.id)) ?? false;
+
+  const toggleWatchlist = async () => {
+    if (!user) {
+      toast.error('You must be logged in to use this functionality');
+      return;
+    }
+
+    const previousWatchlist = watchlistData;
+    const newIsInWatchlist = !isInWatchlist;
+
+    // Optimistic update
+    mutateWatchlist(
+      {
+        movieIds: newIsInWatchlist
+          ? [...(watchlistData?.movieIds || []), parseInt(resolvedParams.id)]
+          : (watchlistData?.movieIds || []).filter((id: number) => id !== parseInt(resolvedParams.id))
+      },
+      false
+    );
+
+    try {
+      const response = await fetch(
+        newIsInWatchlist ? '/api/watchlist' : `/api/watchlist/${resolvedParams.id}`,
+        {
+          method: newIsInWatchlist ? 'POST' : 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: newIsInWatchlist ? JSON.stringify({ movieId: parseInt(resolvedParams.id) }) : undefined,
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to update watchlist');
+      }
+
+      toast.success(
+        newIsInWatchlist
+          ? 'Added to watchlist'
+          : 'Removed from watchlist'
+      );
+    } catch (error) {
+      // Revert optimistic update on error
+      mutateWatchlist(previousWatchlist, false);
+      toast.error('Failed to update watchlist. Please try again.');
+    }
+  };
 
   if (error) {
     return (
@@ -260,10 +318,15 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="px-4 py-3 rounded-xl bg-black/60 backdrop-blur-sm border border-cyan-500/30 hover:border-cyan-400/60 transition-all text-cyan-100 flex items-center justify-center gap-2"
+                    onClick={toggleWatchlist}
+                    className={`px-4 py-3 rounded-xl backdrop-blur-sm border transition-all flex items-center justify-center gap-2 ${
+                      isInWatchlist
+                        ? 'bg-red-500/20 border-red-500/50 hover:border-red-400/70 text-red-100'
+                        : 'bg-black/60 border-cyan-500/30 hover:border-cyan-400/60 text-cyan-100'
+                    }`}
                   >
-                    <Plus className="w-5 h-5" />
-                    <span>My List</span>
+                    <Plus className={`w-5 h-5 ${isInWatchlist ? 'rotate-45' : ''} transition-transform duration-200`} />
+                    <span>{isInWatchlist ? 'In List' : 'My List'}</span>
                   </motion.button>
 
                   <motion.button
