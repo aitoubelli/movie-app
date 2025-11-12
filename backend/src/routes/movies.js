@@ -1,5 +1,5 @@
 import express from 'express';
-import { getTrendingMovies, getPopularMovies, getMovieById } from '../services/tmdbService.js';
+import { getTrendingMovies, getPopularMovies, getMovieById, getMovieRecommendations } from '../services/tmdbService.js';
 
 const router = express.Router();
 
@@ -57,6 +57,27 @@ router.get('/:id', async (req, res) => {
         }
     } catch (error) {
         console.error('Error in /:id route:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+        });
+    }
+});
+
+router.get('/:id/recommendations', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const result = await getMovieRecommendations(id, page);
+
+        if (result.success) {
+            res.json(result);
+        } else {
+            res.status(result.status).json({
+                error: result.error,
+            });
+        }
+    } catch (error) {
+        console.error('Error in /:id/recommendations route:', error);
         res.status(500).json({
             error: 'Internal server error',
         });

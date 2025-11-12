@@ -77,15 +77,17 @@ export function Footer() {
               <ul className="space-y-3">
                 {items.map((item) => (
                   <li key={item.name}>
-                    <Link href={item.href}>
-                      <motion.a
+                    <motion.div
+                      whileHover={{ x: 4 }}
+                      className="inline-block"
+                    >
+                      <Link
                         href={item.href}
-                        whileHover={{ x: 4 }}
-                        className="text-cyan-100/60 hover:text-cyan-300 transition-colors inline-block"
+                        className="text-cyan-100/60 hover:text-cyan-300 transition-colors"
                       >
                         {item.name}
-                      </motion.a>
-                    </Link>
+                      </Link>
+                    </motion.div>
                   </li>
                 ))}
               </ul>
