@@ -13,6 +13,7 @@ import { LoginModal } from "@/components/LoginModal";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CommentsSection } from "@/components/CommentsSection";
+import { Pagination } from "@/components/Pagination";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { use } from "react";
@@ -60,6 +61,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
+  const [commentsPage, setCommentsPage] = useState(1);
   const { user } = useAuth();
 
   const { data, error, isLoading } = useSWR(
@@ -80,7 +82,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
 
   // Fetch comments
   const { data: commentsData, mutate: mutateComments } = useSWR(
-    `/api/comments/${resolvedParams.id}`,
+    `/api/comments/${resolvedParams.id}?page=${commentsPage}`,
     fetcher,
   );
 
@@ -667,6 +669,12 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
             onToggleReplies={handleToggleReplies}
             onLikeComment={handleLikeComment}
             onLikeReply={handleLikeReply}
+          />
+
+          <Pagination
+            currentPage={commentsPage}
+            totalPages={commentsData?.totalPages || 1}
+            onPageChange={setCommentsPage}
           />
         </motion.section>
       </div>

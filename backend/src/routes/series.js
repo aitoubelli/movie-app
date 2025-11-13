@@ -1,8 +1,8 @@
 import express from 'express';
 import {
-  getTrendingSeries,
+  getTrending,
   getPopularSeries,
-  getSeriesById,
+  getDetails,
   getSeriesRecommendations,
 } from '../services/tmdbService.js';
 
@@ -11,7 +11,7 @@ const router = express.Router();
 router.get('/trending', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
-    const result = await getTrendingSeries(page);
+    const result = await getTrending('tv', 'week', page);
 
     if (result.success) {
       res.json(result);
@@ -51,7 +51,7 @@ router.get('/popular', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await getSeriesById(id);
+    const result = await getDetails('tv', id);
 
     if (result.success) {
       res.json(result);

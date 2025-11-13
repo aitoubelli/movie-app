@@ -16,46 +16,54 @@ const tmdbApi = axios.create({
     },
 });
 
-// Movie functions
-export async function getTrendingMovies(page = 1) {
+// Generic functions
+export async function getTrending(type, timeWindow = 'week', page = 1) {
     try {
         // check Redis cache first
-        const cacheKey = `trending:week`;
+        const cacheKey = `trending:${type}:${timeWindow}`;
         const cachedData = await redisClient.get(cacheKey);
         if (cachedData) {
             return JSON.parse(cachedData);
         }
 
-        const response = await tmdbApi.get('/trending/movie/week', {
+        const endpoint = `/trending/${type}/${timeWindow}`;
+        const response = await tmdbApi.get(endpoint, {
             params: { page },
         });
 
-        const upsertPromises = response.data.results.map(movie => {
-            const movieData = {
-                tmdbId: movie.id,
-                type: 'movie',
-                title: movie.title,
-                overview: movie.overview,
-                posterPath: movie.poster_path,
-                backdropPath: movie.backdrop_path,
-                releaseDate: movie.release_date ? new Date(movie.release_date) : null,
+        const upsertPromises = response.data.results.map((item) => {
+            const itemData = {
+                tmdbId: item.id,
+                type: type,
+                title: type === 'movie' ? item.title : item.name,
+                overview: item.overview,
+                posterPath: item.poster_path,
+                backdropPath: item.backdrop_path,
+                releaseDate:
+                    type === 'movie'
+                        ? item.release_date
+                            ? new Date(item.release_date)
+                            : null
+                        : item.first_air_date
+                            ? new Date(item.first_air_date)
+                            : null,
                 genres: [],
-                rating: movie.vote_average,
+                rating: item.vote_average,
                 lastFetched: new Date(),
             };
 
-            return Content.findOneAndUpdate(
-                { tmdbId: movie.id, type: 'movie' },
-                movieData,
-                { upsert: true, new: true }
-            ).catch(err => {
-                console.error(`Error upserting movie ${movie.id}:`, err);
+            return Content.findOneAndUpdate({ tmdbId: item.id, type: type }, itemData, {
+                upsert: true,
+                new: true,
+            }).catch((err) => {
+                console.error(`Error upserting ${type} ${item.id}:`, err);
             });
         });
 
         Promise.allSettled(upsertPromises);
 
         const result = {
+            type,
             success: true,
             data: response.data,
             page: response.data.page,
@@ -64,16 +72,16 @@ export async function getTrendingMovies(page = 1) {
         };
 
         // cache the result in Redis for 1 hour
-        await redisClient.setEx(cacheKey, 3600, JSON.stringify(result));
+        await redisClient.set(cacheKey, JSON.stringify(result), { EX: 3600 });
 
         return result;
     } catch (error) {
-        console.error('Error fetching trending movies:', error.response?.data || error.message);
+        console.error(`Error fetching trending ${type}:`, error.response?.data || error.message);
 
         if (error.response?.status === 404) {
             return {
                 success: false,
-                error: 'Trending movies not found',
+                error: `Trending ${type} not found`,
                 status: 404,
             };
         }
@@ -88,15 +96,17 @@ export async function getTrendingMovies(page = 1) {
 
         return {
             success: false,
-            error: 'Failed to fetch trending movies',
+            error: `Failed to fetch trending ${type}`,
             status: error.response?.status || 500,
         };
     }
 }
 
-export async function getPopularMovies(page = 1) {
+// Generic function for popular content
+export async function getPopular(type, page = 1) {
     try {
-        const response = await tmdbApi.get('/movie/popular', {
+        const endpoint = type === 'movie' ? '/movie/popular' : '/tv/popular';
+        const response = await tmdbApi.get(endpoint, {
             params: { page },
         });
 
@@ -108,12 +118,12 @@ export async function getPopularMovies(page = 1) {
             totalResults: response.data.total_results,
         };
     } catch (error) {
-        console.error('Error fetching popular movies:', error.response?.data || error.message);
+        console.error(`Error fetching popular ${type}:`, error.response?.data || error.message);
 
         if (error.response?.status === 404) {
             return {
                 success: false,
-                error: 'Popular movies not found',
+                error: `Popular ${type} not found`,
                 status: 404,
             };
         }
@@ -128,65 +138,78 @@ export async function getPopularMovies(page = 1) {
 
         return {
             success: false,
-            error: 'Failed to fetch popular movies',
+            error: `Failed to fetch popular ${type}`,
             status: error.response?.status || 500,
         };
     }
 }
 
-export async function getMovieById(id) {
+export async function getPopularMovies(page = 1) {
+    return getPopular('movie', page);
+}
+
+export async function getDetails(type, id) {
     try {
-        const cachedMovie = await Content.findOne({
+        const cachedItem = await Content.findOne({
             tmdbId: id,
-            type: 'movie',
+            type: type,
         });
 
         const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        if (cachedMovie && cachedMovie.lastFetched > sevenDaysAgo) {
+        if (cachedItem && cachedItem.lastFetched > sevenDaysAgo) {
             return {
+                type,
                 success: true,
-                data: cachedMovie,
+                data: cachedItem,
                 fromCache: true,
             };
         }
 
-        const response = await tmdbApi.get(`/movie/${id}`, {
+        const endpoint = type === 'movie' ? `/movie/${id}` : `/tv/${id}`;
+        const response = await tmdbApi.get(endpoint, {
             params: {
                 append_to_response: 'credits',
             },
         });
 
-        const movieData = {
+        const itemData = {
             tmdbId: response.data.id,
-            type: 'movie',
-            title: response.data.title,
+            type: type,
+            title: type === 'movie' ? response.data.title : response.data.name,
             overview: response.data.overview,
             posterPath: response.data.poster_path,
             backdropPath: response.data.backdrop_path,
-            releaseDate: response.data.release_date ? new Date(response.data.release_date) : null,
-            genres: response.data.genres?.map(genre => genre.name) || [],
+            releaseDate:
+                type === 'movie'
+                    ? response.data.release_date
+                        ? new Date(response.data.release_date)
+                        : null
+                    : response.data.first_air_date
+                        ? new Date(response.data.first_air_date)
+                        : null,
+            genres: response.data.genres?.map((genre) => genre.name) || [],
             rating: response.data.vote_average,
             lastFetched: new Date(),
         };
 
-        await Content.findOneAndUpdate(
-            { tmdbId: id, type: 'movie' },
-            movieData,
-            { upsert: true, new: true }
-        );
+        await Content.findOneAndUpdate({ tmdbId: id, type: type }, itemData, {
+            upsert: true,
+            new: true,
+        });
 
         return {
+            type,
             success: true,
-            data: movieData,
+            data: itemData,
             fromCache: false,
         };
     } catch (error) {
-        console.error(`Error fetching movie with ID ${id}:`, error.response?.data || error.message);
+        console.error(`Error fetching ${type} with ID ${id}:`, error.response?.data || error.message);
 
         if (error.response?.status === 404) {
             return {
                 success: false,
-                error: 'Movie not found',
+                error: `${type} not found`,
                 status: 404,
             };
         }
@@ -201,15 +224,17 @@ export async function getMovieById(id) {
 
         return {
             success: false,
-            error: `Failed to fetch movie with ID ${id}`,
+            error: `Failed to fetch ${type} with ID ${id}`,
             status: error.response?.status || 500,
         };
     }
 }
 
-export async function getMovieRecommendations(id, page = 1) {
+// Generic function for recommendations
+export async function getRecommendations(type, id, page = 1) {
     try {
-        const response = await tmdbApi.get(`/movie/${id}/recommendations`, {
+        const endpoint = type === 'movie' ? `/movie/${id}/recommendations` : `/tv/${id}/recommendations`;
+        const response = await tmdbApi.get(endpoint, {
             params: { page },
         });
 
@@ -222,14 +247,14 @@ export async function getMovieRecommendations(id, page = 1) {
         };
     } catch (error) {
         console.error(
-            `Error fetching recommendations for movie ${id}:`,
+            `Error fetching recommendations for ${type} ${id}:`,
             error.response?.data || error.message,
         );
 
         if (error.response?.status === 404) {
             return {
                 success: false,
-                error: 'Movie recommendations not found',
+                error: `${type} recommendations not found`,
                 status: 404,
             };
         }
@@ -244,32 +269,71 @@ export async function getMovieRecommendations(id, page = 1) {
 
         return {
             success: false,
-            error: `Failed to fetch recommendations for movie ${id}`,
+            error: `Failed to fetch recommendations for ${type} ${id}`,
             status: error.response?.status || 500,
         };
     }
 }
 
-export async function searchMovies(query, page = 1) {
+export async function getMovieRecommendations(id, page = 1) {
+    return getRecommendations('movie', id, page);
+}
+
+export async function search(type, query, page = 1) {
     try {
-        const response = await tmdbApi.get('/search/movie', {
+        const endpoint = `/search/${type}`;
+        const response = await tmdbApi.get(endpoint, {
             params: { query, page },
         });
 
-        return {
+        const upsertPromises = response.data.results.map((item) => {
+            const itemData = {
+                tmdbId: item.id,
+                type: type,
+                title: type === 'movie' ? item.title : item.name,
+                overview: item.overview,
+                posterPath: item.poster_path,
+                backdropPath: item.backdrop_path,
+                releaseDate:
+                    type === 'movie'
+                        ? item.release_date
+                            ? new Date(item.release_date)
+                            : null
+                        : item.first_air_date
+                            ? new Date(item.first_air_date)
+                            : null,
+                genres: [],
+                rating: item.vote_average,
+                lastFetched: new Date(),
+            };
+
+            return Content.findOneAndUpdate({ tmdbId: item.id, type: type }, itemData, {
+                upsert: true,
+                new: true,
+            }).catch((err) => {
+                console.error(`Error upserting ${type} ${item.id}:`, err);
+            });
+        });
+
+        Promise.allSettled(upsertPromises);
+
+        const result = {
+            type,
             success: true,
             data: response.data,
             page: response.data.page,
             totalPages: response.data.total_pages,
             totalResults: response.data.total_results,
         };
+
+        return result;
     } catch (error) {
-        console.error('Error searching movies:', error.response?.data || error.message);
+        console.error(`Error searching ${type}:`, error.response?.data || error.message);
 
         if (error.response?.status === 404) {
             return {
                 success: false,
-                error: 'Movie search not found',
+                error: `${type} search not found`,
                 status: 404,
             };
         }
@@ -284,7 +348,7 @@ export async function searchMovies(query, page = 1) {
 
         return {
             success: false,
-            error: 'Failed to search movies',
+            error: `Failed to search ${type}`,
             status: error.response?.status || 500,
         };
     }

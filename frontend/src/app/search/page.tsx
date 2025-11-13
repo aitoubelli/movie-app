@@ -10,6 +10,7 @@ import { MovieCard } from '@/components/MovieCard';
 import { Footer } from '@/components/Footer';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Pagination } from '@/components/Pagination';
 import { Search, Loader2 } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -38,6 +39,7 @@ function SearchPageContent() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [debouncedQuery, setDebouncedQuery] = useState(searchParams.get('q') || '');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Debounce search query
   useEffect(() => {
@@ -48,10 +50,11 @@ function SearchPageContent() {
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Update URL when debounced query changes
+  // Update URL when debounced query changes and reset page
   useEffect(() => {
     if (debouncedQuery.trim()) {
       router.replace(`/search?q=${encodeURIComponent(debouncedQuery.trim())}`);
+      setCurrentPage(1); // Reset to first page when query changes
     } else {
       router.replace('/search');
     }
@@ -59,7 +62,7 @@ function SearchPageContent() {
 
   // Fetch search results
   const { data: searchData, error: searchError, isLoading: searchLoading } = useSWR(
-    debouncedQuery.trim().length >= 2 ? `/api/movies/search?q=${encodeURIComponent(debouncedQuery.trim())}&page=1` : null,
+    debouncedQuery.trim().length >= 2 ? `/api/movies/search?q=${encodeURIComponent(debouncedQuery.trim())}&page=${currentPage}` : null,
     fetcher,
   );
 
@@ -185,6 +188,13 @@ function SearchPageContent() {
                   />
                 ))}
               </div>
+
+              {/* Pagination */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={searchData?.total_pages || 1}
+                onPageChange={setCurrentPage}
+              />
             </motion.div>
           )}
 
