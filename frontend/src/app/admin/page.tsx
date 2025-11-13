@@ -50,7 +50,7 @@ export default function AdminDashboard() {
 
     try {
       const token = await user.getIdToken();
-      const response = await fetch("http://localhost:8000/api/profile", {
+      const response = await fetch("http://localhost:8000/api/auth/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },

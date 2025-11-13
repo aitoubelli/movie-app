@@ -51,7 +51,7 @@ app.use('/api/series', seriesRouter);
 app.use('/api/anime', animeRouter);
 app.use('/api/watchlist', watchlistRouter);
 app.use('/api/comments', commentsRouter);
-app.use('/api', authRouter);
+app.use('/api/auth', authRouter);
 app.use('/api', featuredRouter);
 
 app.listen(PORT, () => {
