@@ -12,12 +12,10 @@ import { TrailerModal } from "@/components/TrailerModal";
 import { LoginModal } from "@/components/LoginModal";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { CommentsSection } from "@/components/CommentsSection";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { use } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -57,7 +55,11 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
   const resolvedParams = use(params);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
-  const [commentText, setCommentText] = useState("");
+  const [sortBy, setSortBy] = useState<'newest' | 'top'>('newest');
+  const [commentText, setCommentText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const { user } = useAuth();
 
   const { data, error, isLoading } = useSWR(
@@ -163,6 +165,122 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
       toast.success('Comment posted successfully');
     } catch (error) {
       toast.error('Failed to post comment. Please try again.');
+    }
+  };
+
+  const handleSortChange = (sort: 'newest' | 'top') => {
+    setSortBy(sort);
+  };
+
+  const handleCommentTextChange = (text: string) => {
+    setCommentText(text);
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await postComment();
+  };
+
+  const handleToggleReply = (commentId: number) => {
+    setReplyingTo(replyingTo === commentId ? null : commentId);
+  };
+
+  const handleReplyTextChange = (text: string) => {
+    setReplyText(text);
+  };
+
+  const handleSubmitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error('You must be logged in to reply');
+      return;
+    }
+
+    if (!replyText.trim()) {
+      toast.error('Reply cannot be empty');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/comments/reply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          commentId: replyingTo,
+          text: replyText.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to post reply');
+      }
+
+      setReplyText('');
+      setReplyingTo(null);
+      mutateComments();
+      toast.success('Reply posted successfully');
+    } catch (error) {
+      toast.error('Failed to post reply. Please try again.');
+    }
+  };
+
+  const handleToggleReplies = (commentId: number) => {
+    const newExpanded = new Set(expandedComments);
+    if (newExpanded.has(commentId)) {
+      newExpanded.delete(commentId);
+    } else {
+      newExpanded.add(commentId);
+    }
+    setExpandedComments(newExpanded);
+  };
+
+  const handleLikeComment = async (commentId: number) => {
+    if (!user) {
+      toast.error('You must be logged in to like comments');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like comment');
+      }
+
+      mutateComments();
+    } catch (error) {
+      toast.error('Failed to like comment. Please try again.');
+    }
+  };
+
+  const handleLikeReply = async (replyId: number) => {
+    if (!user) {
+      toast.error('You must be logged in to like replies');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/comments/reply/${replyId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like reply');
+      }
+
+      mutateComments();
+    } catch (error) {
+      toast.error('Failed to like reply. Please try again.');
     }
   };
 
@@ -291,6 +409,23 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
       };
       return genreMap[id] || 'Unknown';
     }) || ['Action', 'Sci-Fi'],
+  })) || [];
+
+  const transformedComments = commentsData?.data?.map((comment: any) => ({
+    id: comment.id,
+    author: comment.userName || 'Anonymous',
+    avatar: 'https://via.placeholder.com/150x150?text=' + (comment.userName?.charAt(0)?.toUpperCase() || 'U'),
+    text: comment.text,
+    timestamp: new Date(comment.createdAt).toLocaleDateString(),
+    likes: comment.likes || 0,
+    replies: comment.replies?.map((reply: any) => ({
+      id: reply.id,
+      author: reply.userName || 'Anonymous',
+      avatar: 'https://via.placeholder.com/150x150?text=' + (reply.userName?.charAt(0)?.toUpperCase() || 'U'),
+      text: reply.text,
+      timestamp: new Date(reply.createdAt).toLocaleDateString(),
+      likes: reply.likes || 0,
+    })) || [],
   })) || [];
 
   return (
@@ -516,78 +651,23 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
           transition={{ duration: 0.6 }}
           className="mt-16"
         >
-          <h2 className="text-2xl font-bold my-6 bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent">
-            Comments ({commentsData?.data?.length || 0})
-          </h2>
-
-          {/* Comment Form - Only for logged in users */}
-          {user && (
-            <div className="mb-8">
-              <div className="flex gap-4">
-                <Textarea
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Write a comment..."
-                  className="flex-1 bg-black/40 border-cyan-500/30 text-cyan-100 placeholder:text-cyan-100/50 focus:border-cyan-400"
-                />
-                <Button
-                  onClick={postComment}
-                  className="bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-400 hover:to-violet-400 text-white px-6"
-                >
-                  Post Comment
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Comments List */}
-          <div className="space-y-4">
-            {commentsData?.data?.map((comment: any) => (
-              <Card key={comment.id} className="bg-black/40 border-cyan-500/20">
-                <CardContent className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-cyan-500 to-violet-500 flex items-center justify-center">
-                        <span className="text-white font-semibold text-sm">
-                          {comment.userName?.charAt(0)?.toUpperCase() || 'U'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-cyan-100 font-medium">{comment.userName}</span>
-                        <span className="text-cyan-100/60 text-sm">
-                          {new Date(comment.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <p className="text-cyan-100/80 leading-relaxed">{comment.text}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-            {(!commentsData?.data || commentsData?.data?.length === 0) && (
-              <Card className="bg-black/60 backdrop-blur-md border-cyan-500/20 border-dashed">
-                <CardContent className="p-8 text-center">
-                  <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-r from-cyan-500/20 to-violet-500/20 flex items-center justify-center border border-cyan-500/30">
-                    <span className="text-cyan-400 text-2xl">💬</span>
-                  </div>
-                  <h3 className="text-lg font-medium text-cyan-100 mb-2">No comments yet</h3>
-                  <p className="text-cyan-100/60 mb-4">Be the first to share your thoughts about this movie!</p>
-                  {!user && (
-                    <p className="text-cyan-100/80 text-sm">
-                      <button
-                        onClick={() => setIsLoginOpen(true)}
-                        className="text-cyan-300 font-medium hover:text-cyan-200 transition-colors underline"
-                      >
-                        Login
-                      </button> to leave a comment
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            )}
-          </div>
+          <CommentsSection
+            comments={transformedComments}
+            sortBy={sortBy}
+            onSortChange={handleSortChange}
+            commentText={commentText}
+            onCommentTextChange={handleCommentTextChange}
+            onSubmitComment={handleSubmitComment}
+            replyingTo={replyingTo}
+            replyText={replyText}
+            onReplyTextChange={handleReplyTextChange}
+            onSubmitReply={handleSubmitReply}
+            onToggleReply={handleToggleReply}
+            expandedComments={expandedComments}
+            onToggleReplies={handleToggleReplies}
+            onLikeComment={handleLikeComment}
+            onLikeReply={handleLikeReply}
+          />
         </motion.section>
       </div>
 

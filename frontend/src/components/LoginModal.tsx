@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -8,18 +10,65 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
+  const { loginWithEmail, registerWithEmail, loginWithGoogle, resetPassword } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     name: ''
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login/signup logic here
-    console.log('Form submitted:', formData);
+    setIsLoading(true);
+
+    try {
+      if (isLogin) {
+        await loginWithEmail(formData.email, formData.password);
+        toast.success('Successfully signed in!');
+        onClose();
+      } else {
+        await registerWithEmail(formData.email, formData.password);
+        toast.success('Account created successfully!');
+        onClose();
+      }
+    } catch (error: any) {
+      console.error('Authentication error:', error);
+      toast.error(error.message || 'Authentication failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    try {
+      await loginWithGoogle();
+      toast.success('Successfully signed in with Google!');
+      onClose();
+    } catch (error: any) {
+      console.error('Google login error:', error);
+      toast.error(error.message || 'Google login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+
+    try {
+      await resetPassword(formData.email);
+      toast.success('Password reset email sent!');
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      toast.error(error.message || 'Failed to send password reset email');
+    }
   };
 
   return (
@@ -143,6 +192,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     <div className="text-right">
                       <button
                         type="button"
+                        onClick={handleForgotPassword}
                         className="text-sm text-cyan-300/80 hover:text-cyan-300 transition-colors"
                       >
                         Forgot Password?
@@ -155,12 +205,13 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     type="submit"
-                    className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 text-white relative overflow-hidden group"
+                    disabled={isLoading}
+                    className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 text-white relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
                     style={{ boxShadow: '0 0 40px rgba(6, 182, 212, 0.5)' }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-violet-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                     <span className="relative">
-                      {isLogin ? 'Sign In' : 'Create Account'}
+                      {isLoading ? 'Loading...' : (isLogin ? 'Sign In' : 'Create Account')}
                     </span>
                   </motion.button>
                 </form>
@@ -181,7 +232,9 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     type="button"
-                    className="w-full py-3 rounded-xl bg-black/40 border border-cyan-500/30 hover:border-cyan-400/60 transition-all text-cyan-100 backdrop-blur-sm"
+                    onClick={handleGoogleLogin}
+                    disabled={isLoading}
+                    className="w-full py-3 rounded-xl bg-black/40 border border-cyan-500/30 hover:border-cyan-400/60 transition-all text-cyan-100 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Continue with Google
                   </motion.button>

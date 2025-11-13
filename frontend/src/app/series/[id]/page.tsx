@@ -11,6 +11,7 @@ import { MovieCard } from "@/components/MovieCard";
 import { TrailerModal } from "@/components/TrailerModal";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
+import { CommentsSection } from "@/components/CommentsSection";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
 import { use } from "react";
@@ -54,6 +55,11 @@ interface Series {
 export default function SeriesDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'newest' | 'top'>('newest');
+  const [commentText, setCommentText] = useState('');
+  const [replyingTo, setReplyingTo] = useState<number | null>(null);
+  const [replyText, setReplyText] = useState('');
+  const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
   const { user } = useAuth();
 
   const { data, error, isLoading } = useSWR(
@@ -69,6 +75,12 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
   // Fetch watchlist if user is authenticated
   const { data: watchlistData, mutate: mutateWatchlist } = useSWR(
     user ? '/api/watchlist' : null,
+    fetcher,
+  );
+
+  // Fetch comments
+  const { data: commentsData, mutate: mutateComments } = useSWR(
+    `/api/comments/${resolvedParams.id}`,
     fetcher,
   );
 
@@ -118,6 +130,153 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
       // Revert optimistic update on error
       mutateWatchlist(previousWatchlist, false);
       toast.error('Failed to update watchlist. Please try again.');
+    }
+  };
+
+  const handleSortChange = (sort: 'newest' | 'top') => {
+    setSortBy(sort);
+  };
+
+  const handleCommentTextChange = (text: string) => {
+    setCommentText(text);
+  };
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error('You must be logged in to post comments');
+      return;
+    }
+
+    if (!commentText.trim()) {
+      toast.error('Comment cannot be empty');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          movieId: parseInt(resolvedParams.id),
+          text: commentText.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to post comment');
+      }
+
+      setCommentText('');
+      mutateComments();
+      toast.success('Comment posted successfully');
+    } catch (error) {
+      toast.error('Failed to post comment. Please try again.');
+    }
+  };
+
+  const handleToggleReply = (commentId: number) => {
+    setReplyingTo(replyingTo === commentId ? null : commentId);
+  };
+
+  const handleReplyTextChange = (text: string) => {
+    setReplyText(text);
+  };
+
+  const handleSubmitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error('You must be logged in to reply');
+      return;
+    }
+
+    if (!replyText.trim()) {
+      toast.error('Reply cannot be empty');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/comments/reply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          commentId: replyingTo,
+          text: replyText.trim(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to post reply');
+      }
+
+      setReplyText('');
+      setReplyingTo(null);
+      mutateComments();
+      toast.success('Reply posted successfully');
+    } catch (error) {
+      toast.error('Failed to post reply. Please try again.');
+    }
+  };
+
+  const handleToggleReplies = (commentId: number) => {
+    const newExpanded = new Set(expandedComments);
+    if (newExpanded.has(commentId)) {
+      newExpanded.delete(commentId);
+    } else {
+      newExpanded.add(commentId);
+    }
+    setExpandedComments(newExpanded);
+  };
+
+  const handleLikeComment = async (commentId: number) => {
+    if (!user) {
+      toast.error('You must be logged in to like comments');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/comments/${commentId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like comment');
+      }
+
+      mutateComments();
+    } catch (error) {
+      toast.error('Failed to like comment. Please try again.');
+    }
+  };
+
+  const handleLikeReply = async (replyId: number) => {
+    if (!user) {
+      toast.error('You must be logged in to like replies');
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/comments/reply/${replyId}/like`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to like reply');
+      }
+
+      mutateComments();
+    } catch (error) {
+      toast.error('Failed to like reply. Please try again.');
     }
   };
 
@@ -246,6 +405,23 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
       };
       return genreMap[id] || 'Unknown';
     }) || ['Action', 'Sci-Fi'],
+  })) || [];
+
+  const transformedComments = commentsData?.data?.map((comment: any) => ({
+    id: comment.id,
+    author: comment.userName || 'Anonymous',
+    avatar: 'https://via.placeholder.com/150x150?text=' + (comment.userName?.charAt(0)?.toUpperCase() || 'U'),
+    text: comment.text,
+    timestamp: new Date(comment.createdAt).toLocaleDateString(),
+    likes: comment.likes || 0,
+    replies: comment.replies?.map((reply: any) => ({
+      id: reply.id,
+      author: reply.userName || 'Anonymous',
+      avatar: 'https://via.placeholder.com/150x150?text=' + (reply.userName?.charAt(0)?.toUpperCase() || 'U'),
+      text: reply.text,
+      timestamp: new Date(reply.createdAt).toLocaleDateString(),
+      likes: reply.likes || 0,
+    })) || [],
   })) || [];
 
   return (
@@ -462,6 +638,33 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
             </div>
           </motion.section>
         )}
+
+        {/* Comments Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mt-16"
+        >
+          <CommentsSection
+            comments={transformedComments}
+            sortBy={sortBy}
+            onSortChange={handleSortChange}
+            commentText={commentText}
+            onCommentTextChange={handleCommentTextChange}
+            onSubmitComment={handleSubmitComment}
+            replyingTo={replyingTo}
+            replyText={replyText}
+            onReplyTextChange={handleReplyTextChange}
+            onSubmitReply={handleSubmitReply}
+            onToggleReply={handleToggleReply}
+            expandedComments={expandedComments}
+            onToggleReplies={handleToggleReplies}
+            onLikeComment={handleLikeComment}
+            onLikeReply={handleLikeReply}
+          />
+        </motion.section>
       </div>
 
       {/* Trailer Modal */}
