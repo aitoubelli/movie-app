@@ -1,5 +1,6 @@
 import axios from 'axios';
 import Content from '../models/Content.js';
+import redisClient from '../config/redis.js';
 
 const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
 const API_KEY = process.env.TMDB_API_KEY;
@@ -18,6 +19,13 @@ const tmdbApi = axios.create({
 // Movie functions
 export async function getTrendingMovies(page = 1) {
     try {
+        // check Redis cache first
+        const cacheKey = `trending:week`;
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+            return JSON.parse(cachedData);
+        }
+
         const response = await tmdbApi.get('/trending/movie/week', {
             params: { page },
         });
@@ -47,13 +55,18 @@ export async function getTrendingMovies(page = 1) {
 
         Promise.allSettled(upsertPromises);
 
-        return {
+        const result = {
             success: true,
             data: response.data,
             page: response.data.page,
             totalPages: response.data.total_pages,
             totalResults: response.data.total_results,
         };
+
+        // cache the result in Redis for 1 hour
+        await redisClient.setEx(cacheKey, 3600, JSON.stringify(result));
+
+        return result;
     } catch (error) {
         console.error('Error fetching trending movies:', error.response?.data || error.message);
 
