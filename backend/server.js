@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
 import mongoose from 'mongoose';
+import redisClient from './src/config/redis.js';
 import moviesRouter from './src/routes/movies.js';
 import seriesRouter from './src/routes/series.js';
 import animeRouter from './src/routes/anime.js';
@@ -45,6 +46,10 @@ mongoose
     .catch((error) => {
         console.error('MongoDB connection error:', error);
     });
+
+redisClient.connect().catch((error) => {
+    console.error('Redis connection error:', error);
+});
 
 app.use('/api/movies', moviesRouter);
 app.use('/api/series', seriesRouter);
