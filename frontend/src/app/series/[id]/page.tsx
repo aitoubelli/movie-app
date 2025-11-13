@@ -63,12 +63,12 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
   const { user } = useAuth();
 
   const { data, error, isLoading } = useSWR(
-    `/api/series/${resolvedParams.id}`,
+    `/api/series/content/tv/${resolvedParams.id}`,
     fetcher,
   );
 
   const { data: recommendationsData } = useSWR(
-    `/api/series/${resolvedParams.id}/recommendations`,
+    `/api/series/tv/${resolvedParams.id}/recommendations?type=tv`,
     fetcher,
   );
 

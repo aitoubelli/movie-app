@@ -33,15 +33,15 @@ export default function Home() {
   };
 
   const { data: trendingData, error: trendingError, isLoading: trendingLoading } = useSWR(
-    activeCategory === 'movies' ? "/api/movies/trending" :
-    activeCategory === 'series' ? "/api/series/trending" :
+    activeCategory === 'movies' ? "/api/movies/trending?type=movie" :
+    activeCategory === 'series' ? "/api/series/trending?type=tv" :
     "/api/anime/trending",
     fetcher,
   );
 
   const { data: popularData, error: popularError, isLoading: popularLoading } = useSWR(
-    activeCategory === 'movies' ? "/api/movies/popular" :
-    activeCategory === 'series' ? "/api/series/popular" :
+    activeCategory === 'movies' ? "/api/movies/popular?type=movie" :
+    activeCategory === 'series' ? "/api/series/popular?type=tv" :
     "/api/anime/popular",
     fetcher,
   );
@@ -54,7 +54,7 @@ export default function Home() {
 
   // Fetch full movie data for featured IDs in parallel
   const { data: featuredMoviesData, error: featuredMoviesError, isLoading: featuredMoviesLoading } = useSWR(
-    featuredIdsData?.movieIds?.length > 0 ? featuredIdsData.movieIds.map((id: number) => `/api/movies/${id}`) : null,
+    featuredIdsData?.movieIds?.length > 0 ? featuredIdsData.movieIds.map((id: number) => `/api/movies/content/movie/${id}`) : null,
     async (urls: string[]) => {
       if (!urls) return [];
       const responses = await Promise.all(urls.map((url: string) => fetch(url).then(res => res.json())));

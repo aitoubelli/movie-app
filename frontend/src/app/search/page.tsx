@@ -40,6 +40,7 @@ function SearchPageContent() {
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
   const [debouncedQuery, setDebouncedQuery] = useState(searchParams.get('q') || '');
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchType, setSearchType] = useState<'movie' | 'tv'>('movie');
 
   // Debounce search query
   useEffect(() => {
@@ -62,7 +63,7 @@ function SearchPageContent() {
 
   // Fetch search results
   const { data: searchData, error: searchError, isLoading: searchLoading } = useSWR(
-    debouncedQuery.trim().length >= 2 ? `/api/movies/search?q=${encodeURIComponent(debouncedQuery.trim())}&page=${currentPage}` : null,
+    debouncedQuery.trim().length >= 2 ? `/api/movies/search?q=${encodeURIComponent(debouncedQuery.trim())}&type=${searchType}&page=${currentPage}` : null,
     fetcher,
   );
 

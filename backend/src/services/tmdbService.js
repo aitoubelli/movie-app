@@ -37,18 +37,22 @@ export async function getTrending(type, timeWindow = 'week', page = 1) {
                 type: type,
                 title: type === 'movie' ? item.title : item.name,
                 overview: item.overview,
-                posterPath: item.poster_path,
-                backdropPath: item.backdrop_path,
-                releaseDate:
+                poster_path: item.poster_path,
+                backdrop_path: item.backdrop_path,
+                release_date:
                     type === 'movie'
                         ? item.release_date
                             ? new Date(item.release_date)
                             : null
-                        : item.first_air_date
+                        : null,
+                first_air_date:
+                    type === 'tv'
+                        ? item.first_air_date
                             ? new Date(item.first_air_date)
-                            : null,
+                            : null
+                        : null,
                 genres: [],
-                rating: item.vote_average,
+                vote_average: item.vote_average,
                 lastFetched: new Date(),
             };
 
@@ -150,20 +154,8 @@ export async function getPopularMovies(page = 1) {
 
 export async function getDetails(type, id) {
     try {
-        const cachedItem = await Content.findOne({
-            tmdbId: id,
-            type: type,
-        });
-
-        const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-        if (cachedItem && cachedItem.lastFetched > sevenDaysAgo) {
-            return {
-                type,
-                success: true,
-                data: cachedItem,
-                fromCache: true,
-            };
-        }
+        // For detailed views, always fetch fresh data to get complete information
+        // Cache is used for trending/popular lists only
 
         const endpoint = type === 'movie' ? `/movie/${id}` : `/tv/${id}`;
         const response = await tmdbApi.get(endpoint, {
@@ -172,23 +164,28 @@ export async function getDetails(type, id) {
             },
         });
 
+        // Update cache with basic info
         const itemData = {
             tmdbId: response.data.id,
             type: type,
             title: type === 'movie' ? response.data.title : response.data.name,
             overview: response.data.overview,
-            posterPath: response.data.poster_path,
-            backdropPath: response.data.backdrop_path,
-            releaseDate:
+            poster_path: response.data.poster_path,
+            backdrop_path: response.data.backdrop_path,
+            release_date:
                 type === 'movie'
                     ? response.data.release_date
                         ? new Date(response.data.release_date)
                         : null
-                    : response.data.first_air_date
+                    : null,
+            first_air_date:
+                type === 'tv'
+                    ? response.data.first_air_date
                         ? new Date(response.data.first_air_date)
-                        : null,
+                        : null
+                    : null,
             genres: response.data.genres?.map((genre) => genre.name) || [],
-            rating: response.data.vote_average,
+            vote_average: response.data.vote_average,
             lastFetched: new Date(),
         };
 
@@ -200,7 +197,7 @@ export async function getDetails(type, id) {
         return {
             type,
             success: true,
-            data: itemData,
+            data: response.data, // Return full TMDB response for detail views
             fromCache: false,
         };
     } catch (error) {
@@ -292,18 +289,22 @@ export async function search(type, query, page = 1) {
                 type: type,
                 title: type === 'movie' ? item.title : item.name,
                 overview: item.overview,
-                posterPath: item.poster_path,
-                backdropPath: item.backdrop_path,
-                releaseDate:
+                poster_path: item.poster_path,
+                backdrop_path: item.backdrop_path,
+                release_date:
                     type === 'movie'
                         ? item.release_date
                             ? new Date(item.release_date)
                             : null
-                        : item.first_air_date
+                        : null,
+                first_air_date:
+                    type === 'tv'
+                        ? item.first_air_date
                             ? new Date(item.first_air_date)
-                            : null,
+                            : null
+                        : null,
                 genres: [],
-                rating: item.vote_average,
+                vote_average: item.vote_average,
                 lastFetched: new Date(),
             };
 

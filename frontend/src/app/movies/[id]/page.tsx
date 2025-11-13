@@ -65,12 +65,12 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
   const { user } = useAuth();
 
   const { data, error, isLoading } = useSWR(
-    `/api/movies/${resolvedParams.id}`,
+    `/api/movies/content/movie/${resolvedParams.id}`,
     fetcher,
   );
 
   const { data: recommendationsData } = useSWR(
-    `/api/movies/${resolvedParams.id}/recommendations`,
+    `/api/movies/movie/${resolvedParams.id}/recommendations?type=movie`,
     fetcher,
   );
 
