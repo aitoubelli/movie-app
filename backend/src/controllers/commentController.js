@@ -36,14 +36,36 @@ export const postComment = async (req, res) => {
 export const getCommentsByMovie = async (req, res) => {
   try {
     const { movieId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
     if (!validateMovieId(movieId)) {
       return res.status(400).json({ error: 'Invalid movieId. Must be a positive integer.' });
     }
 
-    const comments = await Comment.find({ movieId }).sort({ createdAt: -1 });
+    if (page < 1 || limit < 1 || limit > 100) {
+      return res.status(400).json({
+        error:
+          'Invalid pagination parameters. Page and limit must be positive integers, limit cannot exceed 100.',
+      });
+    }
 
-    res.json({ comments });
+    const skip = (page - 1) * limit;
+
+    // Get total count for pagination calculation
+    const totalComments = await Comment.countDocuments({ movieId });
+    const totalPages = Math.ceil(totalComments / limit);
+
+    const comments = await Comment.find({ movieId })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.json({
+      comments,
+      totalPages,
+      currentPage: page,
+    });
   } catch (error) {
     console.error('Error getting comments:', error);
     res.status(500).json({ error: 'Internal server error' });
