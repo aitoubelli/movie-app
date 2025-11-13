@@ -15,6 +15,26 @@ router.get('/dashboard', verifyFirebaseToken, (req, res) => {
     });
 });
 
+// Protected route: GET /api/auth/me
+router.get('/me', verifyFirebaseToken, async (req, res) => {
+    try {
+        const user = await User.findOne({ firebaseUid: req.user.uid });
+
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({
+            uid: user.firebaseUid,
+            email: user.email,
+            role: user.role,
+        });
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
 // Protected route: GET /api/profile
 router.get('/profile', verifyFirebaseToken, async (req, res) => {
     try {

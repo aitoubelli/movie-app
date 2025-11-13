@@ -102,6 +102,16 @@ export function Navbar() {
                 </Link>
               </motion.div>
             ))}
+            {userRole === 'admin' && (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Link href="/admin">
+                  <button className="relative px-4 py-2 text-yellow-300 hover:text-yellow-200 transition-colors group">
+                    Admin
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-400 to-yellow-300 group-hover:w-full transition-all duration-300" />
+                  </button>
+                </Link>
+              </motion.div>
+            )}
           </div>
 
           {/* Search and Mobile Menu */}
@@ -282,6 +292,13 @@ export function Navbar() {
                     </button>
                   </Link>
                 ))}
+                {userRole === 'admin' && (
+                  <Link href="/admin">
+                    <button className="px-4 py-2 text-left text-yellow-300 hover:text-yellow-200 hover:bg-yellow-500/10 rounded-lg transition-all w-full">
+                      Admin
+                    </button>
+                  </Link>
+                )}
               </div>
             </motion.div>
           )}

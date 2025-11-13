@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/profile', {
+      const response = await fetch('/api/auth/me', {
         headers: {
           'Authorization': `Bearer ${idToken}`,
         },
