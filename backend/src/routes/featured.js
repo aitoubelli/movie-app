@@ -1,9 +1,9 @@
 import express from 'express';
 import { adminOnly } from '../middleware/adminOnly.js';
 import {
-    addFeaturedMovie,
-    removeFeaturedMovie,
-    getFeaturedMovies,
+  addFeaturedMovie,
+  removeFeaturedMovie,
+  getFeaturedMovies,
 } from '../controllers/featuredController.js';
 
 const router = express.Router();

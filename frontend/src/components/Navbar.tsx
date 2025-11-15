@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { LoginModal } from './LoginModal';
+import { getAvatarUrl } from '@/lib/utils';
 
 export function Navbar() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -13,7 +14,7 @@ export function Navbar() {
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const { user, userRole, logout } = useAuth();
+  const { user, userRole, profileData, logout } = useAuth();
   const router = useRouter();
 
   const handleProfileClick = () => {
@@ -133,12 +134,28 @@ export function Navbar() {
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                  className="p-2 w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 border-2 border-violet-400/60 flex items-center justify-center relative"
+                  className="w-10 h-10 rounded-full border-2 border-violet-400/60 flex items-center justify-center relative"
                   style={{ boxShadow: '0 0 20px rgba(139, 92, 246, 0.5)' }}
                 >
-                  <span className="text-white text-sm">{getUserInitials(user)}</span>
+                  {profileData?.avatar !== undefined ? (
+                    <img
+                      src={getAvatarUrl(profileData.avatar)}
+                      alt="User Avatar"
+                      className="w-full h-full object-cover rounded-full"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `<span class="text-white text-sm">${getUserInitials(user)}</span>`;
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-white text-sm">{getUserInitials(user)}</span>
+                  )}
                   {userRole === 'admin' && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-yellow-400 border-2 border-black" />
+                    <div className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-yellow-400 border-2 border-black z-10" />
                   )}
                 </motion.button>
 
@@ -168,7 +185,7 @@ export function Navbar() {
                         <motion.button
                           whileHover={{ x: 4 }}
                           onClick={() => {
-                            router.push('/dashboard');
+                            router.push('/profile');
                             setIsProfileMenuOpen(false);
                           }}
                           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-cyan-100 hover:bg-cyan-500/10 transition-all"

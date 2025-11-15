@@ -53,6 +53,7 @@ export const verifyFirebaseToken = async (req, res, next) => {
         req.user = {
             uid: decodedToken.uid,
             email: decodedToken.email,
+            name: decodedToken.name || decodedToken.displayName || '',
         };
 
         let user = await User.findOne({ firebaseUid: decodedToken.uid });
@@ -60,6 +61,9 @@ export const verifyFirebaseToken = async (req, res, next) => {
             user = new User({
                 firebaseUid: decodedToken.uid,
                 email: decodedToken.email,
+                name: decodedToken.name || decodedToken.displayName || '',
+                username: '',
+                avatar: 0,
                 role: 'user',
             });
             await user.save();
