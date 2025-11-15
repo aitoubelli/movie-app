@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ThumbsUp, MessageCircle, Send, ChevronDown } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Send, ChevronDown, Crown, Trophy, Medal } from 'lucide-react';
 import { ImageWithFallback } from './ImageWithFallback';
+import { toast } from 'sonner';
 
 interface Reply {
   id: number;
@@ -9,6 +10,7 @@ interface Reply {
   text: string;
   timestamp: string;
   likes: number;
+  likedByCurrentUser: boolean;
 }
 
 interface Comment {
@@ -18,6 +20,7 @@ interface Comment {
   text: string;
   timestamp: string;
   likes: number;
+  likedByCurrentUser: boolean;
   replies: Reply[];
 }
 
@@ -37,6 +40,7 @@ interface CommentsSectionProps {
   onToggleReplies: (commentId: number) => void;
   onLikeComment: (commentId: number) => void;
   onLikeReply: (replyId: number) => void;
+  userAvatar?: string;
 }
 
 export function CommentsSection({
@@ -55,6 +59,7 @@ export function CommentsSection({
   onToggleReplies,
   onLikeComment,
   onLikeReply,
+  userAvatar,
 }: CommentsSectionProps) {
   return (
     <div className="space-y-8">
@@ -92,9 +97,17 @@ export function CommentsSection({
           >
             <div className="flex gap-4">
               <div className="relative flex-shrink-0">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-violet-500 flex items-center justify-center">
-                  <span className="text-white">You</span>
-                </div>
+                {userAvatar ? (
+                  <ImageWithFallback
+                    src={userAvatar}
+                    alt="Your avatar"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-cyan-500/30"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-violet-500 flex items-center justify-center border-2 border-cyan-500/30">
+                    <span className="text-white text-sm">You</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex-1">
@@ -152,6 +165,24 @@ export function CommentsSection({
                   <p className="text-cyan-100">{comment.author}</p>
                   <span className="text-cyan-100/40">•</span>
                   <span className="text-cyan-100/60 text-sm">{comment.timestamp}</span>
+                  {index === 0 && (
+                    <div className="flex items-center ml-2">
+                      <Crown className="w-4 h-4 text-yellow-500 animate-pulse" />
+                      <span className="text-yellow-500 text-xs font-bold ml-1">1st</span>
+                    </div>
+                  )}
+                  {index === 1 && (
+                    <div className="flex items-center ml-2">
+                      <Trophy className="w-4 h-4 text-yellow-400" />
+                      <span className="text-yellow-400 text-xs font-bold ml-1">2nd</span>
+                    </div>
+                  )}
+                  {index === 2 && (
+                    <div className="flex items-center ml-2">
+                      <Medal className="w-4 h-4 text-yellow-600" />
+                      <span className="text-yellow-600 text-xs font-bold ml-1">3rd</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Comment Text */}
@@ -167,7 +198,7 @@ export function CommentsSection({
                     onClick={() => onLikeComment(comment.id)}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/30 hover:border-cyan-400/60 transition-all"
                   >
-                    <ThumbsUp className="w-4 h-4 text-cyan-400" />
+                    <ThumbsUp className={`w-4 h-4 text-cyan-400 ${comment.likedByCurrentUser ? 'fill-cyan-400' : ''}`} />
                     <span className="text-cyan-300 text-sm">{comment.likes}</span>
                   </motion.button>
 
@@ -265,7 +296,7 @@ export function CommentsSection({
                               onClick={() => onLikeReply(reply.id)}
                               className="flex items-center gap-1 px-2 py-1 rounded-lg bg-cyan-500/10 border border-cyan-500/20 hover:border-cyan-400/40 transition-all"
                             >
-                              <ThumbsUp className="w-3 h-3 text-cyan-400" />
+                              <ThumbsUp className={`w-3 h-3 text-cyan-400 ${reply.likedByCurrentUser ? 'fill-cyan-400' : ''}`} />
                               <span className="text-cyan-300 text-xs">{reply.likes}</span>
                             </motion.button>
                           </div>

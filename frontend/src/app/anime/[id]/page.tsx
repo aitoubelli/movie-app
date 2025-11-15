@@ -13,6 +13,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CommentsSection } from "@/components/CommentsSection";
 import { useAuth } from "@/context/AuthContext";
+import { getAvatarUrl } from "@/lib/utils";
 import { toast } from "sonner";
 import { use } from "react";
 
@@ -80,7 +81,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
 
   // Fetch comments
   const { data: commentsData, mutate: mutateComments } = useSWR(
-    `/api/comments/${resolvedParams.id}`,
+    `/api/comments/${resolvedParams.id}?contentType=anime&sortBy=${sortBy}`,
     fetcher,
   );
 
@@ -154,13 +155,16 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
     }
 
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch('/api/comments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
-          movieId: parseInt(resolvedParams.id),
+          contentId: parseInt(resolvedParams.id),
+          contentType: 'anime',
           text: commentText.trim(),
         }),
       });
@@ -198,10 +202,12 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
     }
 
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch('/api/comments/reply', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
         body: JSON.stringify({
           commentId: replyingTo,
@@ -239,10 +245,12 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
     }
 
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch(`/api/comments/${commentId}/like`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
       });
 
@@ -263,10 +271,12 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
     }
 
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch(`/api/comments/reply/${replyId}/like`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
         },
       });
 
@@ -408,20 +418,22 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
     }) || ['Action', 'Sci-Fi'],
   })) || [];
 
-  const transformedComments = commentsData?.data?.map((comment: any) => ({
-    id: comment.id,
+  const transformedComments = commentsData?.comments?.map((comment: any) => ({
+    id: comment._id,
     author: comment.userName || 'Anonymous',
-    avatar: 'https://via.placeholder.com/150x150?text=' + (comment.userName?.charAt(0)?.toUpperCase() || 'U'),
+    avatar: comment.userAvatar !== undefined ? getAvatarUrl(comment.userAvatar) : 'https://via.placeholder.com/150x150?text=' + (comment.userName?.charAt(0)?.toUpperCase() || 'U'),
     text: comment.text,
     timestamp: new Date(comment.createdAt).toLocaleDateString(),
-    likes: comment.likes || 0,
+    likes: comment.likes?.length || 0,
+    likedByCurrentUser: user ? comment.likes?.includes(user.uid) : false,
     replies: comment.replies?.map((reply: any) => ({
-      id: reply.id,
+      id: reply._id,
       author: reply.userName || 'Anonymous',
-      avatar: 'https://via.placeholder.com/150x150?text=' + (reply.userName?.charAt(0)?.toUpperCase() || 'U'),
+      avatar: reply.userAvatar !== undefined ? getAvatarUrl(reply.userAvatar) : 'https://via.placeholder.com/150x150?text=' + (reply.userName?.charAt(0)?.toUpperCase() || 'U'),
       text: reply.text,
       timestamp: new Date(reply.createdAt).toLocaleDateString(),
-      likes: reply.likes || 0,
+      likes: reply.likes?.length || 0,
+      likedByCurrentUser: user ? reply.likes?.includes(user.uid) : false,
     })) || [],
   })) || [];
 
