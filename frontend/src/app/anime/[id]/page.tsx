@@ -498,7 +498,29 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => setIsTrailerOpen(true)}
+                  onClick={async () => {
+                    if (user) {
+                      try {
+                        const idToken = await user.getIdToken();
+                        const response = await fetch('http://localhost:8000/api/movies/continue-watching', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${idToken}`,
+                          },
+                          body: JSON.stringify({ movieId: resolvedParams.id }),
+                        });
+
+                        if (!response.ok) {
+                          throw new Error('Failed to add to continue watching');
+                        }
+
+                        toast.success('Anime added to continue watching');
+                      } catch (error) {
+                        toast.error('Failed to start watching. Please try again.');
+                      }
+                    }
+                  }}
                   className="w-full group relative px-6 py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-violet-500 overflow-hidden"
                   style={{ boxShadow: '0 0 40px rgba(6, 182, 212, 0.5)' }}
                 >

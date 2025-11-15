@@ -14,6 +14,18 @@ import { useAuth } from '@/context/AuthContext';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
+// Authenticated fetcher for continue watching
+const authenticatedFetcher = async (url: string, user: any) => {
+  const idToken = await user.getIdToken();
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${idToken}`,
+    },
+  });
+  if (!response.ok) throw new Error('Failed to fetch continue watching');
+  return response.json();
+};
+
 interface ContentItem {
   id: number;
   title: string;
@@ -68,7 +80,7 @@ export default function Home() {
   // Fetch continue watching data (only if user is authenticated)
   const { data: continueWatchingData, error: continueWatchingError, isLoading: continueWatchingLoading } = useSWR(
     user ? "/api/movies/continue-watching" : null,
-    fetcher,
+    (url: string) => authenticatedFetcher(url, user),
   );
 
   // Fetch newest releases
@@ -106,6 +118,10 @@ export default function Home() {
     genres: ['Action', 'Sci-Fi'], // TODO: Map genre_ids to actual genre names
     progress: item.progress,
   })) || [];
+
+
+
+
 
   // Transform newest releases data
   const newestMovies = newestData?.data?.results?.slice(0, 12).map(transformContent) || [];
