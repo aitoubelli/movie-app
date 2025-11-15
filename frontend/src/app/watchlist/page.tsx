@@ -10,7 +10,15 @@ import { Footer } from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 import { Card } from "@/components/ui/card";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+const authenticatedFetcher = async (url: string, user: any) => {
+  const idToken = await user.getIdToken();
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${idToken}`,
+    },
+  });
+  return response.json();
+};
 
 const genreMap: { [key: number]: string } = {
   28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
@@ -32,15 +40,15 @@ export default function WatchlistPage() {
 
   // Fetch watchlist movie IDs
   const { data: watchlistData, error: watchlistError, isLoading: watchlistLoading } = useSWR(
-    user ? '/api/watchlist' : null,
-    fetcher
+    user ? 'http://localhost:8000/api/watchlist' : null,
+    (url: string) => authenticatedFetcher(url, user)
   );
 
   const movieIds = watchlistData?.movieIds || [];
 
   // Fetch full movie data for each movie ID
   const { data: moviesData, error: moviesError, isLoading: moviesLoading } = useSWR(
-    movieIds.length > 0 ? movieIds.map((id: number) => `/api/movies/${id}`) : null,
+    movieIds.length > 0 ? movieIds.map((id: number) => `http://localhost:8000/api/movies/${id}`) : null,
     async (urls: string[]) => {
       const responses = await Promise.all(urls.map(url => fetch(url)));
       const data = await Promise.all(responses.map(res => res.json()));
@@ -95,21 +103,17 @@ export default function WatchlistPage() {
   return (
     <div className="min-h-screen bg-[#050510]">
       <Navbar />
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl md:text-5xl mb-4 bg-gradient-to-r from-cyan-200 via-white to-violet-200 bg-clip-text text-transparent">
-            My Watchlist
-          </h1>
-          <p className="text-lg text-cyan-100/60">
-            Your personal collection of movies to watch
-          </p>
-        </motion.div>
+      <div className="pt-32 pb-16 px-4 md:px-8">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-12">
+            <h1 className="text-4xl md:text-5xl mb-4 bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent">
+              My Watchlist
+            </h1>
+            <p className="text-lg text-cyan-100/60">
+              Your personal collection of movies to watch
+            </p>
+          </div>
 
         {/* Error State */}
         {error && (
@@ -177,6 +181,7 @@ export default function WatchlistPage() {
             </div>
           </motion.div>
         )}
+        </div>
       </div>
       <Footer />
     </div>
