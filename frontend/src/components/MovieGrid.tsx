@@ -8,6 +8,7 @@ interface Movie {
   rating: number;
   year: string;
   genres: string[];
+  progress?: number;
 }
 
 interface MovieGridProps {
@@ -15,9 +16,10 @@ interface MovieGridProps {
   movies: Movie[];
   category?: 'movies' | 'series' | 'anime';
   enableWatchlistToggle?: boolean;
+  showProgress?: boolean;
 }
 
-export function MovieGrid({ title, movies, category = 'movies', enableWatchlistToggle = false }: MovieGridProps) {
+export function MovieGrid({ title, movies, category = 'movies', enableWatchlistToggle = false, showProgress = false }: MovieGridProps) {
   return (
     <section className="py-16 px-4 md:px-8">
       <div className="max-w-7xl mx-auto">
@@ -39,7 +41,7 @@ export function MovieGrid({ title, movies, category = 'movies', enableWatchlistT
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
           {movies.map((movie, index) => (
-            <MovieCard key={movie.id} movie={movie} index={index} category={category} enableWatchlistToggle={enableWatchlistToggle} />
+            <MovieCard key={movie.id} movie={movie} index={index} category={category} enableWatchlistToggle={enableWatchlistToggle} showProgress={showProgress} />
           ))}
         </div>
       </div>

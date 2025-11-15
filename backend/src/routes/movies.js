@@ -1,4 +1,6 @@
 import express from 'express';
+import axios from 'axios';
+import { verifyFirebaseToken } from '../middleware/auth.js';
 import {
     getTrending,
     getPopular,
@@ -8,6 +10,16 @@ import {
 } from '../services/tmdbService.js';
 
 const router = express.Router();
+
+const TMDB_BASE_URL = 'https://api.themoviedb.org/3';
+const API_KEY = process.env.TMDB_API_KEY;
+
+const tmdbApi = axios.create({
+    baseURL: TMDB_BASE_URL,
+    params: {
+        api_key: API_KEY,
+    },
+});
 
 // Helper function to validate type parameter
 const validateType = (type) => {
@@ -67,6 +79,44 @@ router.get('/popular', async (req, res) => {
         console.error('Error in /popular route:', error);
         res.status(500).json({
             error: 'Internal server error',
+        });
+    }
+});
+
+router.get('/now-playing', async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+
+        const response = await tmdbApi.get('/movie/now_playing', {
+            params: { page },
+        });
+
+        const result = {
+            success: true,
+            data: response.data,
+            page: response.data.page,
+            totalPages: response.data.total_pages,
+            totalResults: response.data.total_results,
+        };
+
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching now playing movies:', error.response?.data || error.message);
+
+        if (error.response?.status === 404) {
+            return res.status(404).json({
+                error: 'Now playing movies not found',
+            });
+        }
+
+        if (error.response?.status === 429) {
+            return res.status(429).json({
+                error: 'Rate limit exceeded. Please try again later.',
+            });
+        }
+
+        res.status(error.response?.status || 500).json({
+            error: 'Failed to fetch now playing movies',
         });
     }
 });
@@ -161,6 +211,45 @@ router.get('/search', async (req, res) => {
         }
     } catch (error) {
         console.error('Error in /search route:', error);
+        res.status(500).json({
+            error: 'Internal server error',
+        });
+    }
+});
+
+// Continue watching endpoint (requires authentication)
+router.get('/continue-watching', verifyFirebaseToken, async (req, res) => {
+    try {
+        // For now, return a mix of trending movies with random progress
+        // TODO: Replace with actual user progress tracking
+        const trendingResult = await getTrending('movie', 'week', 1);
+
+        if (!trendingResult.success) {
+            return res.status(trendingResult.status).json({
+                error: trendingResult.error,
+            });
+        }
+
+        // Take first 6 movies and add random progress values
+        const continueWatchingMovies = trendingResult.data.results.slice(0, 6).map(movie => ({
+            ...movie,
+            progress: Math.floor(Math.random() * 100) + 1, // Random progress 1-100%
+        }));
+
+        res.json({
+            success: true,
+            data: {
+                results: continueWatchingMovies,
+                page: 1,
+                total_pages: 1,
+                total_results: continueWatchingMovies.length,
+            },
+            page: 1,
+            totalPages: 1,
+            totalResults: continueWatchingMovies.length,
+        });
+    } catch (error) {
+        console.error('Error in /continue-watching route:', error);
         res.status(500).json({
             error: 'Internal server error',
         });

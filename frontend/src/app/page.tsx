@@ -10,6 +10,7 @@ import { MovieCard } from "@/components/MovieCard";
 import { Footer } from "@/components/Footer";
 import { Film, Tv, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '@/context/AuthContext';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -23,10 +24,12 @@ interface ContentItem {
   release_date?: string;
   first_air_date?: string;
   genre_ids: number[];
+  progress?: number; // For continue watching
 }
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState<'movies' | 'series' | 'anime'>('movies');
+  const { user } = useAuth();
 
   const handleCategoryChange = (category: 'movies' | 'series' | 'anime') => {
     setActiveCategory(category);
@@ -62,6 +65,18 @@ export default function Home() {
     },
   );
 
+  // Fetch continue watching data (only if user is authenticated)
+  const { data: continueWatchingData, error: continueWatchingError, isLoading: continueWatchingLoading } = useSWR(
+    user ? "/api/movies/continue-watching" : null,
+    fetcher,
+  );
+
+  // Fetch newest releases
+  const { data: newestData, error: newestError, isLoading: newestLoading } = useSWR(
+    "/api/movies/now-playing",
+    fetcher,
+  );
+
   // Get featured movie (first trending movie)
   const featuredMovie = trendingData?.data?.results?.[0];
 
@@ -77,6 +92,23 @@ export default function Home() {
           item.first_air_date ? new Date(item.first_air_date).getFullYear().toString() : '2024',
     genres: ['Action', 'Sci-Fi'], // TODO: Map genre_ids to actual genre names
   });
+
+  // Transform continue watching data
+  const continueWatchingMovies = continueWatchingData?.data?.results?.slice(0, 6).map((item: ContentItem) => ({
+    id: item.id,
+    title: item.title || item.name || 'Unknown Title',
+    poster: item.poster_path
+      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
+      : 'https://via.placeholder.com/500x750?text=No+Image',
+    rating: item.vote_average,
+    year: item.release_date ? new Date(item.release_date).getFullYear().toString() :
+          item.first_air_date ? new Date(item.first_air_date).getFullYear().toString() : '2024',
+    genres: ['Action', 'Sci-Fi'], // TODO: Map genre_ids to actual genre names
+    progress: item.progress,
+  })) || [];
+
+  // Transform newest releases data
+  const newestMovies = newestData?.data?.results?.slice(0, 12).map(transformContent) || [];
 
   const trendingMovies = trendingData?.data?.results?.slice(1, 13).map(transformContent) || [];
   const popularMovies = popularData?.data?.results?.slice(0, 12).map(transformContent) || [];
@@ -225,6 +257,16 @@ export default function Home() {
             </div>
           </motion.div>
         </div>
+
+        {/* Continue Watching Section */}
+        {user && continueWatchingMovies.length > 0 && (
+          <MovieGrid title="Continue Watching" movies={continueWatchingMovies} category="movies" enableWatchlistToggle={true} showProgress={true} />
+        )}
+
+        {/* Newest Releases Section */}
+        {newestMovies.length > 0 && (
+          <MovieGrid title="Newest Releases" movies={newestMovies} category="movies" enableWatchlistToggle={true} />
+        )}
 
         {/* Featured Now Section */}
         {featuredMovies.length > 0 && (

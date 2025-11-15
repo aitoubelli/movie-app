@@ -17,13 +17,15 @@ interface MovieCardProps {
     rating: number;
     year: string;
     genres: string[];
+    progress?: number; // For continue watching (0-100)
   };
   index: number;
   category?: 'movies' | 'series' | 'anime';
   enableWatchlistToggle?: boolean;
+  showProgress?: boolean;
 }
 
-export function MovieCard({ movie, index, category = 'movies', enableWatchlistToggle = false }: MovieCardProps) {
+export function MovieCard({ movie, index, category = 'movies', enableWatchlistToggle = false, showProgress = false }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { user } = useAuth();
 
@@ -111,6 +113,16 @@ export function MovieCard({ movie, index, category = 'movies', enableWatchlistTo
           <div
             className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300"
           />
+
+          {/* Progress Bar (for Continue Watching) */}
+          {showProgress && movie.progress !== undefined && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 to-violet-500"
+                style={{ width: `${movie.progress}%` }}
+              />
+            </div>
+          )}
 
           {/* Glow Effect on Hover */}
           <div
