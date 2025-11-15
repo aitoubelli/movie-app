@@ -30,13 +30,20 @@ export function MovieCard({ movie, index, category = 'movies', enableWatchlistTo
   const { user } = useAuth();
 
   // Fetch watchlist if user is authenticated and watchlist toggle is enabled
+  const authenticatedFetcher = async (url: string, user: any) => {
+    const idToken = await user.getIdToken();
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to fetch watchlist');
+    return response.json();
+  };
+
   const { data: watchlistData, mutate: mutateWatchlist } = useSWR(
-    user && enableWatchlistToggle ? '/api/watchlist' : null,
-    async (url) => {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch watchlist');
-      return response.json();
-    }
+    user && enableWatchlistToggle ? 'http://localhost:8000/api/watchlist' : null,
+    (url: string) => authenticatedFetcher(url, user)
   );
 
   const isInWatchlist = watchlistData?.movieIds?.includes(movie.id) ?? false;
@@ -61,12 +68,14 @@ export function MovieCard({ movie, index, category = 'movies', enableWatchlistTo
     );
 
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch(
-        newIsInWatchlist ? '/api/watchlist' : `/api/watchlist/${movie.id}`,
+        newIsInWatchlist ? 'http://localhost:8000/api/watchlist' : `http://localhost:8000/api/watchlist/${movie.id}`,
         {
           method: newIsInWatchlist ? 'POST' : 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
           },
           body: newIsInWatchlist ? JSON.stringify({ movieId: movie.id }) : undefined,
         }

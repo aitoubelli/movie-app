@@ -75,10 +75,22 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
     fetcher,
   );
 
+  // Authenticated fetcher for watchlist
+  const authenticatedFetcher = async (url: string, user: any) => {
+    const idToken = await user.getIdToken();
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+    if (!response.ok) throw new Error('Failed to fetch watchlist');
+    return response.json();
+  };
+
   // Fetch watchlist if user is authenticated
   const { data: watchlistData, mutate: mutateWatchlist } = useSWR(
-    user ? '/api/watchlist' : null,
-    fetcher,
+    user ? 'http://localhost:8000/api/watchlist' : null,
+    (url: string) => authenticatedFetcher(url, user)
   );
 
   // Fetch comments
@@ -109,12 +121,14 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
     );
 
     try {
+      const idToken = await user.getIdToken();
       const response = await fetch(
-        newIsInWatchlist ? '/api/watchlist' : `/api/watchlist/${resolvedParams.id}`,
+        newIsInWatchlist ? 'http://localhost:8000/api/watchlist' : `http://localhost:8000/api/watchlist/${resolvedParams.id}`,
         {
           method: newIsInWatchlist ? 'POST' : 'DELETE',
           headers: {
             'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
           },
           body: newIsInWatchlist ? JSON.stringify({ movieId: parseInt(resolvedParams.id) }) : undefined,
         }
