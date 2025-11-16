@@ -39,24 +39,9 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
 
         for (const entry of continueWatchingEntries) {
             try {
-                let result;
-
-                if (entry.contentType === 'anime') {
-                    // For anime, fetch from our anime API endpoint (which handles Jikan)
-                    const response = await fetch(`${process.env.BASE_URL || 'http://localhost:3000'}/api/anime/${entry.contentId}`);
-                    const animeData = await response.json();
-                    if (animeData.success) {
-                        result = {
-                            success: true,
-                            data: animeData.data
-                        };
-                    } else {
-                        result = { success: false };
-                    }
-                } else {
-                    // For movies and TV, use TMDB
-                    result = await getDetails(entry.contentType, entry.contentId);
-                }
+                // Map content types: treat anime as TV for TMDB (since TMDB anime are TV shows)
+                const tmdbType = entry.contentType === 'anime' ? 'tv' : entry.contentType;
+                const result = await getDetails(tmdbType, entry.contentId);
 
                 if (result && result.success) {
                     // Add content type to the response data for frontend to know which route to use
