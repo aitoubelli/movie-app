@@ -9,6 +9,7 @@ interface Movie {
   year: string;
   genres: string[];
   progress?: number;
+  contentType?: string; // For continue watching ('movie', 'tv', 'anime')
 }
 
 interface MovieGridProps {

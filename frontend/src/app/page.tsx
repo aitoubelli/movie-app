@@ -37,6 +37,7 @@ interface ContentItem {
   first_air_date?: string;
   genre_ids: number[];
   progress?: number; // For continue watching
+  contentType?: string; // For continue watching
 }
 
 export default function Home() {
@@ -125,6 +126,7 @@ export default function Home() {
           item.first_air_date ? new Date(item.first_air_date).getFullYear().toString() : '2024',
     genres: ['Action', 'Sci-Fi'], // TODO: Map genre_ids to actual genre names
     progress: item.progress,
+    contentType: item.contentType, // Preserve content type from backend
   })) || [];
 
 

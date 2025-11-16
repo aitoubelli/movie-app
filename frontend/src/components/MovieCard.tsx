@@ -18,6 +18,7 @@ interface MovieCardProps {
     year: string;
     genres: string[];
     progress?: number; // For continue watching (0-100)
+    contentType?: string; // For continue watching ('movie', 'tv', 'anime')
   };
   index: number;
   category?: 'movies' | 'series' | 'anime';
@@ -28,6 +29,25 @@ interface MovieCardProps {
 export function MovieCard({ movie, index, category = 'movies', enableWatchlistToggle = false, showProgress = false }: MovieCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { user } = useAuth();
+
+  // Determine the correct route based on contentType or fallback to category
+  const getRoutePath = () => {
+    if (movie.contentType) {
+      switch (movie.contentType) {
+        case 'movie':
+          return 'movies';
+        case 'tv':
+          return 'series';
+        case 'anime':
+          return 'anime';
+        default:
+          return category;
+      }
+    }
+    return category;
+  };
+
+  const routePath = getRoutePath();
 
   // Fetch watchlist if user is authenticated and watchlist toggle is enabled
   const authenticatedFetcher = async (url: string, user: any) => {
@@ -107,7 +127,7 @@ export function MovieCard({ movie, index, category = 'movies', enableWatchlistTo
       onHoverEnd={() => setIsHovered(false)}
       className="relative group cursor-pointer"
     >
-      <Link href={`/${category}/${movie.id}`}>
+      <Link href={`/${routePath}/${movie.id}`}>
         <div className="relative overflow-hidden rounded-xl aspect-[2/3]">
           {/* Poster Image */}
           <Image
