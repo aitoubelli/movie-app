@@ -79,7 +79,7 @@ export default function Home() {
 
   // Fetch continue watching data (only if user is authenticated)
   const { data: continueWatchingData, error: continueWatchingError, isLoading: continueWatchingLoading } = useSWR(
-    user ? "/api/movies/continue-watching" : null,
+    user ? "/api/continue-watching" : null,
     (url: string) => authenticatedFetcher(url, user),
   );
 

@@ -5,8 +5,13 @@ const continueWatchingSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    movieId: {
+    contentId: {
         type: Number,
+        required: true,
+    },
+    contentType: {
+        type: String,
+        enum: ['movie', 'tv', 'anime'],
         required: true,
     },
     progress: {
@@ -21,7 +26,7 @@ const continueWatchingSchema = new mongoose.Schema({
     },
 });
 
-continueWatchingSchema.index({ userId: 1, movieId: 1 }, { unique: true });
+continueWatchingSchema.index({ userId: 1, contentId: 1, contentType: 1 }, { unique: true });
 
 const ContinueWatching = mongoose.model('ContinueWatching', continueWatchingSchema);
 

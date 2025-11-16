@@ -122,67 +122,7 @@ router.get('/now-playing', async (req, res) => {
     }
 });
 
-// Continue watching endpoint (requires authentication)
-router.get('/continue-watching', verifyFirebaseToken, async (req, res) => {
-    try {
-        const userId = req.user.uid;
 
-        // Get user's continue watching entries
-        const continueWatchingEntries = await ContinueWatching.find({ userId }).sort({ lastWatchedAt: -1 });
-
-        if (!continueWatchingEntries || continueWatchingEntries.length === 0) {
-            return res.json({
-                success: true,
-                data: {
-                    results: [],
-                    page: 1,
-                    total_pages: 1,
-                    total_results: 0,
-                },
-                page: 1,
-                totalPages: 1,
-                totalResults: 0,
-            });
-        }
-
-        // Get movie details for each entry
-        const movieIds = continueWatchingEntries.map(entry => entry.movieId);
-        const movieDetails = [];
-
-        for (const movieId of movieIds) {
-            try {
-                const result = await getDetails('movie', movieId);
-                if (result.success) {
-                    const entry = continueWatchingEntries.find(e => e.movieId === movieId);
-                    movieDetails.push({
-                        ...result.data,
-                        progress: entry ? entry.progress : 0,
-                    });
-                }
-            } catch (error) {
-                console.error(`Error fetching details for movie ${movieId}:`, error);
-            }
-        }
-
-        res.json({
-            success: true,
-            data: {
-                results: movieDetails,
-                page: 1,
-                total_pages: 1,
-                total_results: movieDetails.length,
-            },
-            page: 1,
-            totalPages: 1,
-            totalResults: movieDetails.length,
-        });
-    } catch (error) {
-        console.error('Error in /continue-watching route:', error);
-        res.status(500).json({
-            error: 'Internal server error',
-        });
-    }
-});
 
 router.get('/:id', async (req, res) => {
     try {
@@ -281,41 +221,7 @@ router.get('/search', async (req, res) => {
 });
 
 
-router.post('/continue-watching', verifyFirebaseToken, async (req, res) => {
-    try {
-        const { movieId } = req.body;
-        const userId = req.user.uid;
 
-        if (!movieId || isNaN(parseInt(movieId))) {
-            return res.status(400).json({
-                error: 'Valid movieId is required',
-            });
-        }
-
-        // Add or update continue watching entry with progress 0
-        const continueWatchingEntry = await ContinueWatching.findOneAndUpdate(
-            { userId, movieId: parseInt(movieId) },
-            {
-                userId,
-                movieId: parseInt(movieId),
-                progress: 0,
-                lastWatchedAt: new Date(),
-            },
-            { upsert: true, new: true }
-        );
-
-        res.json({
-            success: true,
-            message: 'Movie added to continue watching',
-            data: continueWatchingEntry,
-        });
-    } catch (error) {
-        console.error('Error in POST /continue-watching route:', error);
-        res.status(500).json({
-            error: 'Internal server error',
-        });
-    }
-});
 
 // New route for content details with type in path
 router.get('/content/:type/:id', async (req, res) => {

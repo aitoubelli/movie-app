@@ -501,13 +501,13 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
                     if (user) {
                       try {
                         const idToken = await user.getIdToken();
-                        const response = await fetch('http://localhost:8000/api/movies/continue-watching', {
+                        const response = await fetch('http://localhost:8000/api/continue-watching', {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${idToken}`,
                           },
-                          body: JSON.stringify({ movieId: resolvedParams.id }),
+                          body: JSON.stringify({ contentId: resolvedParams.id, contentType: 'tv' }),
                         });
 
                         if (!response.ok) {
