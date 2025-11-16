@@ -122,6 +122,22 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
     }
   };
 
+  // Update filters when initialFilters prop changes
+  useEffect(() => {
+    setResults([]); // Clear existing results when filters change
+    setFilters(prev => ({
+      ...prev,
+      search: initialFilters.search || '',
+      type: initialFilters.type || 'movie',
+      genre: initialFilters.genre || 'all',
+      year: initialFilters.year || 'all',
+      sortBy: initialFilters.category || 'popular',
+      rating: 'all', // Keep other advanced filters as default
+      language: 'all',
+    }));
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [initialFilters]);
+
   // Fetch data when filters or page changes (but not during append)
   useEffect(() => {
     if (!appending) {

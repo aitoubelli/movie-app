@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, Film, Menu, X, User, UserCircle, LayoutDashboard, LogOut, ChevronDown } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { LoginModal } from './LoginModal';
 import { getAvatarUrl } from '@/lib/utils';
@@ -16,6 +16,65 @@ export function Navbar() {
 
   const { user, userRole, profileData, logout } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+
+  const handleRandom = async () => {
+    try {
+      // Determine current category based on pathname and extract sortBy and type
+      let endpoint = '/api/browse'; // default
+      let type = 'all';
+      let sortBy = 'popular';
+
+      if (pathname === '/') {
+        // Home page - get trending content, use a mix of movies and TV
+        endpoint = '/api/browse?sortBy=trending&type=all&page=1';
+        sortBy = 'trending';
+      } else if (pathname === '/browse') {
+        // Check URL parameters for browse page
+        const urlParams = new URLSearchParams(window.location.search);
+        type = urlParams.get('type') || 'all';
+        sortBy = urlParams.get('sortBy') || 'popular';
+        endpoint = `/api/browse?sortBy=${sortBy}&type=${type}&page=1`;
+      } else if (pathname === '/trending') {
+        endpoint = '/api/browse?sortBy=trending&type=all&page=1';
+        sortBy = 'trending';
+      } else if (pathname === '/popular') {
+        endpoint = '/api/browse?sortBy=popular&type=all&page=1';
+        sortBy = 'popular';
+      } else if (pathname === '/upcoming') {
+        endpoint = '/api/browse?sortBy=newest&type=all&page=1';
+        sortBy = 'newest';
+      } else if (pathname === '/top-rated') {
+        endpoint = '/api/browse?sortBy=top-rated&type=all&page=1';
+        sortBy = 'top-rated';
+      } else {
+        // Default browse
+        endpoint = '/api/browse?page=1';
+      }
+
+      const response = await fetch(endpoint);
+      const data = await response.json();
+
+      if (data.success && data.results && data.results.length > 0) {
+        const randomIndex = Math.floor(Math.random() * data.results.length);
+        const randomItem = data.results[randomIndex];
+
+        // Navigate to the random item's detail page
+        let route = '/movies';
+        if (randomItem.type === 'anime') {
+          route = '/anime';
+        } else if (randomItem.type === 'tv' || randomItem.type === 'series') {
+          route = '/series';
+        }
+
+        router.push(`${route}/${randomItem.id}`);
+      }
+    } catch (error) {
+      console.error('Error fetching random item:', error);
+      // Fallback: just go to a default popular movie
+      router.push('/movies/550'); // Fight Club as fallback
+    }
+  };
 
   const handleProfileClick = () => {
     if (user) {
@@ -51,11 +110,11 @@ export function Navbar() {
 
   const browseCategories = [
     { name: 'Browse', href: '/browse' },
-    { name: 'Trending', href: '/' },
-    { name: 'Popular', href: '/popular' },
-    { name: 'Upcoming', href: '/upcoming' },
-    { name: 'Top Rated', href: '/top-rated' },
-    { name: 'Genres', href: '/genres' }
+    { name: 'Trending', href: '/browse?sortBy=trending' },
+    { name: 'Popular', href: '/browse?sortBy=popular' },
+    { name: 'Upcoming', href: '/browse?sortBy=newest' },
+    { name: 'Top Rated', href: '/browse?sortBy=top-rated' },
+    { name: 'Random', href: null as string | null }
   ];
 
   return (
@@ -96,12 +155,27 @@ export function Navbar() {
           <div className="hidden md:flex items-center gap-6">
             {browseCategories.map((category) => (
               <motion.div key={category.name} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link href={category.href}>
+                {category.name === 'Random' ? (
+                  <button
+                    onClick={handleRandom}
+                    className="relative px-4 py-2 text-cyan-100/80 hover:text-cyan-300 transition-colors group"
+                  >
+                    {category.name}
+                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-400 to-violet-400 group-hover:w-full transition-all duration-300" />
+                  </button>
+                ) : category.href ? (
+                  <Link href={category.href}>
+                    <button className="relative px-4 py-2 text-cyan-100/80 hover:text-cyan-300 transition-colors group">
+                      {category.name}
+                      <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-400 to-violet-400 group-hover:w-full transition-all duration-300" />
+                    </button>
+                  </Link>
+                ) : (
                   <button className="relative px-4 py-2 text-cyan-100/80 hover:text-cyan-300 transition-colors group">
                     {category.name}
                     <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-cyan-400 to-violet-400 group-hover:w-full transition-all duration-300" />
                   </button>
-                </Link>
+                )}
               </motion.div>
             ))}
             {userRole === 'admin' && (
@@ -302,13 +376,35 @@ export function Navbar() {
               <div className="flex flex-col gap-2">
                 <div className="px-4 py-2 text-cyan-100/60 text-sm font-medium">Browse</div>
                 {browseCategories.map((category) => (
-                  <Link key={category.name} href={category.href}>
-                    <button
-                      className="px-4 py-2 text-left text-cyan-100/80 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-all w-full"
-                    >
-                      {category.name}
-                    </button>
-                  </Link>
+                  <div key={category.name}>
+                    {category.name === 'Random' ? (
+                      <button
+                        onClick={() => {
+                          handleRandom();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="px-4 py-2 text-left text-cyan-100/80 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-all w-full"
+                      >
+                        {category.name}
+                      </button>
+                    ) : category.href ? (
+                      <Link href={category.href}>
+                        <button
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className="px-4 py-2 text-left text-cyan-100/80 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-all w-full"
+                        >
+                          {category.name}
+                        </button>
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="px-4 py-2 text-left text-cyan-100/80 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-all w-full"
+                      >
+                        {category.name}
+                      </button>
+                    )}
+                  </div>
                 ))}
                 {userRole === 'admin' && (
                   <Link href="/admin">
