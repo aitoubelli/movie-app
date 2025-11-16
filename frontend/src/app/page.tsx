@@ -26,6 +26,23 @@ const authenticatedFetcher = async (url: string, user: any) => {
   return response.json();
 };
 
+// Create a fallback backdrop generator
+const generateFallbackBackdrop = () => {
+  const svg = encodeURIComponent(`
+    <svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="backdropGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#1F2937"/>
+          <stop offset="100%" style="stop-color:#111827"/>
+        </linearGradient>
+      </defs>
+      <rect width="1920" height="1080" fill="url(#backdropGradient)"/>
+      <text x="960" y="540" text-anchor="middle" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="48" font-weight="bold">No Image Available</text>
+    </svg>
+  `);
+  return `data:image/svg+xml,${svg}`;
+};
+
 interface ContentItem {
   id: number;
   title: string;
@@ -62,20 +79,10 @@ export default function Home() {
     fetcher,
   );
 
-  // Fetch featured movie IDs
-  const { data: featuredIdsData, error: featuredIdsError, isLoading: featuredIdsLoading } = useSWR(
-    "/api/featured",
-    fetcher,
-  );
-
-  // Fetch full movie data for featured IDs in parallel
+  // Fetch popular movies for the current category (replaces static featured movies)
   const { data: featuredMoviesData, error: featuredMoviesError, isLoading: featuredMoviesLoading } = useSWR(
-    featuredIdsData?.movieIds?.length > 0 ? featuredIdsData.movieIds.map((id: number) => `/api/movies/content/movie/${id}`) : null,
-    async (urls: string[]) => {
-      if (!urls) return [];
-      const responses = await Promise.all(urls.map((url: string) => fetch(url).then(res => res.json())));
-      return responses.filter((response: any) => response.success).map((response: any) => response.data);
-    },
+    `/api/featured/popular/${activeCategory}`,
+    fetcher,
   );
 
   // Fetch continue watching data (only if user is authenticated)
@@ -98,8 +105,7 @@ export default function Home() {
     fetcher,
   );
 
-  // Get featured movie (first trending movie)
-  const featuredMovie = trendingData?.data?.results?.[0];
+
 
   // Transform content data to match component interface
   const transformContent = (item: ContentItem) => ({
@@ -139,16 +145,14 @@ export default function Home() {
   const trendingMovies = trendingData?.data?.results?.slice(1, 13).map(transformContent) || [];
   const popularMovies = popularData?.data?.results?.slice(0, 12).map(transformContent) || [];
 
-  // Transform featured movies data
-  const featuredMovies = featuredMoviesData?.map((movie: any) => ({
+  // Transform featured movies data for carousel
+  const featuredMoviesCarousel = featuredMoviesData?.map((movie: any) => ({
     id: movie.id,
     title: movie.title || 'Unknown Title',
-    poster: movie.poster_path && movie.poster_path.startsWith('http')
-      ? movie.poster_path
-      : (movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/fallback-poster.svg'),
-    rating: movie.vote_average || 0,
-    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '2024',
-    genres: movie.genres?.slice(0, 2).map((genre: any) => genre.name) || ['Action', 'Drama'],
+    description: movie.description || 'No description available.',
+    rating: movie.rating || 0,
+    poster: movie.poster || '/fallback-poster.svg',
+    backdrop: movie.backdrop || generateFallbackBackdrop()
   })) || [];
 
   // Transform personalized recommendations data
@@ -173,36 +177,7 @@ export default function Home() {
     }) || ['Action', 'Sci-Fi'],
   })) || [];
 
-  // Create a fallback backdrop generator
-  const generateFallbackBackdrop = () => {
-    const svg = encodeURIComponent(`
-      <svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <linearGradient id="backdropGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:#1F2937"/>
-            <stop offset="100%" style="stop-color:#111827"/>
-          </linearGradient>
-        </defs>
-        <rect width="1920" height="1080" fill="url(#backdropGradient)"/>
-        <text x="960" y="540" text-anchor="middle" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="48" font-weight="bold">No Image Available</text>
-      </svg>
-    `);
-    return `data:image/svg+xml,${svg}`;
-  };
-
-  const featuredMovieData = featuredMovie ? {
-    title: featuredMovie.title || featuredMovie.name || 'Unknown Title',
-    description: featuredMovie.overview || 'No description available.',
-    rating: featuredMovie.vote_average,
-    poster: featuredMovie.poster_path && featuredMovie.poster_path.startsWith('http')
-      ? featuredMovie.poster_path
-      : (featuredMovie.poster_path ? `https://image.tmdb.org/t/p/w500${featuredMovie.poster_path}` : '/fallback-poster.svg'),
-    backdrop: featuredMovie.backdrop_path && featuredMovie.backdrop_path.startsWith('http')
-      ? featuredMovie.backdrop_path
-      : (featuredMovie.backdrop_path ? `https://image.tmdb.org/t/p/original${featuredMovie.backdrop_path}` : generateFallbackBackdrop())
-  } : null;
-
-  if (trendingLoading || popularLoading || featuredIdsLoading) {
+  if (trendingLoading || popularLoading || featuredMoviesLoading) {
     return (
       <div className="min-h-screen bg-[#050510] dark overflow-x-hidden flex items-center justify-center">
         <div className="text-cyan-400">Loading...</div>
@@ -230,7 +205,11 @@ export default function Home() {
       <StarfieldBackground />
       <Navbar />
       <main>
-        {featuredMovieData && <Hero movie={featuredMovieData} />}
+        <Hero
+          movies={featuredMoviesCarousel}
+          category={activeCategory}
+          error={!featuredMoviesLoading && featuredMoviesError ? 'Failed to load featured content' : undefined}
+        />
 
         {/* Mobile Category Switcher - Horizontal with text */}
         <div className="md:hidden px-4 py-6">
@@ -338,46 +317,7 @@ export default function Home() {
           <MovieGrid title="Newest Releases" movies={newestMovies} category="movies" enableWatchlistToggle={true} />
         )}
 
-        {/* Featured Now Section */}
-        {featuredMovies.length > 0 && (
-          <section className="py-16 px-4 md:px-8">
-            <div className="max-w-7xl mx-auto">
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true, margin: '-100px' }}
-                transition={{ duration: 0.6 }}
-                className="mb-8"
-              >
-                <h2 className="text-3xl md:text-4xl bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent inline-block relative">
-                  Featured Now
-                  <div
-                    className="absolute -bottom-2 left-0 h-1 w-20 bg-gradient-to-r from-cyan-400 to-violet-400 rounded-full"
-                    style={{ boxShadow: '0 0 20px rgba(6, 182, 212, 0.6)' }}
-                  />
-                </h2>
-              </motion.div>
 
-              {/* Mobile: Horizontal scroll */}
-              <div className="md:hidden overflow-x-auto pb-4">
-                <div className="flex gap-4 min-w-max">
-                  {featuredMovies.map((movie, index) => (
-                    <div key={movie.id} className="flex-shrink-0 w-48">
-                      <MovieCard movie={movie} index={index} category="movies" enableWatchlistToggle={true} />
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Desktop: Grid */}
-              <div className="hidden md:grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
-                {featuredMovies.map((movie, index) => (
-                  <MovieCard key={movie.id} movie={movie} index={index} category="movies" enableWatchlistToggle={true} />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
 
         <MovieGrid title="Trending Now" movies={trendingMovies} category={activeCategory} enableWatchlistToggle={true} />
         <MovieGrid title="Popular This Week" movies={popularMovies} category={activeCategory} enableWatchlistToggle={true} />
