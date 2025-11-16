@@ -375,7 +375,12 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
     );
   }
 
-  const movie: Movie = data?.data;
+  const movie: Movie & { videos?: { results: Array<{ id: string; key: string; name: string; site: string; type: string }> } } = data?.data;
+
+  // Find the first YouTube trailer
+  const trailer = movie?.videos?.results?.find(video =>
+    video.site === 'YouTube' && video.type === 'Trailer'
+  );
 
   if (!movie) {
     return (
@@ -690,6 +695,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
       <TrailerModal
         isOpen={isTrailerOpen}
         onClose={() => setIsTrailerOpen(false)}
+        trailer={trailer}
         movieTitle={movie.title}
       />
 

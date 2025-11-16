@@ -1,13 +1,22 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 
+interface Video {
+  id: string;
+  key: string;
+  name: string;
+  site: string;
+  type: string;
+}
+
 interface TrailerModalProps {
   isOpen: boolean;
   onClose: () => void;
+  trailer?: Video;
   movieTitle: string;
 }
 
-export function TrailerModal({ isOpen, onClose, movieTitle }: TrailerModalProps) {
+export function TrailerModal({ isOpen, onClose, trailer, movieTitle }: TrailerModalProps) {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -54,16 +63,25 @@ export function TrailerModal({ isOpen, onClose, movieTitle }: TrailerModalProps)
 
                 {/* Video Container */}
                 <div className="relative aspect-video bg-black">
-                  {/* Placeholder for video - in real implementation, this would be an iframe or video element */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center">
-                      <p className="text-2xl text-cyan-100 mb-2">{movieTitle}</p>
-                      <p className="text-cyan-100/60">Trailer Video Player</p>
-                      <p className="text-sm text-cyan-100/40 mt-4">
-                        In production, embed YouTube/Vimeo player here
-                      </p>
+                  {trailer ? (
+                    <iframe
+                      src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&modestbranding=1&rel=0`}
+                      title={trailer.name}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="text-center">
+                        <p className="text-2xl text-cyan-100 mb-2">{movieTitle}</p>
+                        <p className="text-cyan-100/60">No trailer available</p>
+                        <p className="text-sm text-cyan-100/40 mt-4">
+                          Trailer not found for this title
+                        </p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
             </motion.div>

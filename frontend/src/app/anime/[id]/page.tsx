@@ -62,7 +62,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [expandedComments, setExpandedComments] = useState<Set<number>>(new Set());
-  const { user } = useAuth();
+  const { user, profileData } = useAuth();
 
   const { data, error, isLoading } = useSWR(
     `/api/movies/${resolvedParams.id}?type=anime`,
@@ -373,7 +373,12 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
     );
   }
 
-  const anime: Anime = data?.data;
+  const anime: Anime & { videos?: { results: Array<{ id: string; key: string; name: string; site: string; type: string }> } } = data?.data;
+
+  // Find the first YouTube trailer
+  const trailer = anime?.videos?.results?.find(video =>
+    video.site === 'YouTube' && video.type === 'Trailer'
+  );
 
   if (!anime) {
     return (
@@ -683,6 +688,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
       <TrailerModal
         isOpen={isTrailerOpen}
         onClose={() => setIsTrailerOpen(false)}
+        trailer={trailer}
         movieTitle={anime.name}
       />
       <Footer />
