@@ -418,6 +418,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
     avatar: comment.userAvatar !== undefined ? getAvatarUrl(comment.userAvatar) : 'https://via.placeholder.com/150x150?text=' + (comment.userName?.charAt(0)?.toUpperCase() || 'U'),
     text: comment.text,
     timestamp: new Date(comment.createdAt).toLocaleDateString(),
+    createdAt: new Date(comment.createdAt),
     likes: comment.likes?.length || 0,
     likedByCurrentUser: user ? comment.likes?.includes(user.uid) : false,
     replies: comment.replies?.map((reply: any) => ({

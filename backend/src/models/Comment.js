@@ -38,7 +38,7 @@ const commentSchema = new mongoose.Schema({
     contentType: {
         type: String,
         required: true,
-        enum: ['movie', 'series'],
+        enum: ['movie', 'series', 'anime'],
     },
     userId: {
         type: String,

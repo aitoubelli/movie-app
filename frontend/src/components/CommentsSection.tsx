@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ThumbsUp, MessageCircle, Send, ChevronDown, Crown, Trophy, Medal } from 'lucide-react';
 import { ImageWithFallback } from './ImageWithFallback';
 import { toast } from 'sonner';
+import { getAvatarUrl } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
 interface Reply {
   id: number;
@@ -19,6 +21,7 @@ interface Comment {
   avatar: string;
   text: string;
   timestamp: string;
+  createdAt: Date;
   likes: number;
   likedByCurrentUser: boolean;
   replies: Reply[];
@@ -61,6 +64,18 @@ export function CommentsSection({
   onLikeReply,
   userAvatar,
 }: CommentsSectionProps) {
+  const { profileData } = useAuth();
+  // Calculate badge rankings based on creation date (earliest first)
+  const getBadgeRank = (commentId: number): number | null => {
+    const earliestComments = [...comments]
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())
+      .slice(0, 3)
+      .map(c => c.id);
+
+    const rankIndex = earliestComments.indexOf(commentId);
+    return rankIndex >= 0 ? rankIndex + 1 : null;
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -97,17 +112,11 @@ export function CommentsSection({
           >
             <div className="flex gap-4">
               <div className="relative flex-shrink-0">
-                {userAvatar ? (
-                  <ImageWithFallback
-                    src={userAvatar}
-                    alt="Your avatar"
-                    className="w-12 h-12 rounded-full object-cover border-2 border-cyan-500/30"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-violet-500 flex items-center justify-center border-2 border-cyan-500/30">
-                    <span className="text-white text-sm">You</span>
-                  </div>
-                )}
+                <ImageWithFallback
+                  src={userAvatar || (profileData ? getAvatarUrl(profileData.avatar) : getAvatarUrl(0))}
+                  alt="Your avatar"
+                  className="w-12 h-12 rounded-full object-cover border-2 border-cyan-500/30"
+                />
               </div>
 
               <div className="flex-1">
@@ -165,19 +174,19 @@ export function CommentsSection({
                   <p className="text-cyan-100">{comment.author}</p>
                   <span className="text-cyan-100/40">•</span>
                   <span className="text-cyan-100/60 text-sm">{comment.timestamp}</span>
-                  {index === 0 && (
+                  {getBadgeRank(comment.id) === 1 && (
                     <div className="flex items-center ml-2">
                       <Crown className="w-4 h-4 text-yellow-500 animate-pulse" />
                       <span className="text-yellow-500 text-xs font-bold ml-1">1st</span>
                     </div>
                   )}
-                  {index === 1 && (
+                  {getBadgeRank(comment.id) === 2 && (
                     <div className="flex items-center ml-2">
                       <Trophy className="w-4 h-4 text-yellow-400" />
                       <span className="text-yellow-400 text-xs font-bold ml-1">2nd</span>
                     </div>
                   )}
-                  {index === 2 && (
+                  {getBadgeRank(comment.id) === 3 && (
                     <div className="flex items-center ml-2">
                       <Medal className="w-4 h-4 text-yellow-600" />
                       <span className="text-yellow-600 text-xs font-bold ml-1">3rd</span>
