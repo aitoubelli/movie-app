@@ -7,6 +7,10 @@ import {
     getDetails,
     getRecommendations,
     search,
+    getTrendingAnime,
+    getPopularAnime,
+    getAnimeById,
+    getAnimeRecommendations,
 } from '../services/tmdbService.js';
 import ContinueWatching from '../models/ContinueWatching.js';
 
@@ -35,8 +39,21 @@ router.get('/trending', async (req, res) => {
 
         if (!validateType(type)) {
             return res.status(400).json({
-                error: 'Invalid type parameter. Must be "movie" or "tv"',
+                error: 'Invalid type parameter. Must be "movie", "tv", or "anime"',
             });
+        }
+
+        // For anime, use the TMDB anime trending function
+        if (type === 'anime') {
+            const result = await getTrendingAnime(page);
+            if (result.success) {
+                res.json(result);
+            } else {
+                res.status(result.status).json({
+                    error: result.error,
+                });
+            }
+            return;
         }
 
         const result = await getTrending(type, 'week', page);
@@ -63,8 +80,21 @@ router.get('/popular', async (req, res) => {
 
         if (!validateType(type)) {
             return res.status(400).json({
-                error: 'Invalid type parameter. Must be "movie" or "tv"',
+                error: 'Invalid type parameter. Must be "movie", "tv", or "anime"',
             });
+        }
+
+        // For anime, use the TMDB anime popular function
+        if (type === 'anime') {
+            const result = await getPopularAnime(page);
+            if (result.success) {
+                res.json(result);
+            } else {
+                res.status(result.status).json({
+                    error: result.error,
+                });
+            }
+            return;
         }
 
         const result = await getPopular(type, page);
@@ -153,8 +183,21 @@ router.get('/:id', async (req, res) => {
 
         if (!validateType(type)) {
             return res.status(400).json({
-                error: 'Invalid type parameter. Must be "movie" or "tv"',
+                error: 'Invalid type parameter. Must be "movie", "tv", or "anime"',
             });
+        }
+
+        // For anime, use the TMDB anime details function
+        if (type === 'anime') {
+            const result = await getAnimeById(id);
+            if (result.success) {
+                res.json(result);
+            } else {
+                res.status(result.status).json({
+                    error: result.error,
+                });
+            }
+            return;
         }
 
         const result = await getDetails(type, id);
@@ -182,8 +225,21 @@ router.get('/:id/recommendations', async (req, res) => {
 
         if (!validateType(type)) {
             return res.status(400).json({
-                error: 'Invalid type parameter. Must be "movie" or "tv"',
+                error: 'Invalid type parameter. Must be "movie", "tv", or "anime"',
             });
+        }
+
+        // For anime, use the TMDB anime recommendations function
+        if (type === 'anime') {
+            const result = await getAnimeRecommendations(id, page);
+            if (result.success) {
+                res.json(result);
+            } else {
+                res.status(result.status).json({
+                    error: result.error,
+                });
+            }
+            return;
         }
 
         const result = await getRecommendations(type, id, page);
@@ -217,10 +273,11 @@ router.get('/search', async (req, res) => {
 
         if (!validateType(searchType)) {
             return res.status(400).json({
-                error: 'Invalid type parameter. Must be "movie" or "tv"',
+                error: 'Invalid type parameter. Must be "movie", "tv", or "anime"',
             });
         }
 
+        // Note: TMDB search doesn't have specific anime search, so anime will search TV
         const result = await search(searchType, q, page);
 
         if (result.success) {
@@ -252,8 +309,21 @@ router.get('/content/:type/:id', async (req, res) => {
 
         if (!validateType(type)) {
             return res.status(400).json({
-                error: 'Invalid type parameter. Must be "movie" or "tv"',
+                error: 'Invalid type parameter. Must be "movie", "tv", or "anime"',
             });
+        }
+
+        // For anime, use the TMDB anime details function
+        if (type === 'anime') {
+            const result = await getAnimeById(id);
+            if (result.success) {
+                res.json(result);
+            } else {
+                res.status(result.status).json({
+                    error: result.error,
+                });
+            }
+            return;
         }
 
         const result = await getDetails(type, id);

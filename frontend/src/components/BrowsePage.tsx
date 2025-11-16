@@ -87,8 +87,8 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
         page: page.toString()
       });
 
-      // Determine which API endpoint to call based on type
-      const endpoint = filters.type === 'anime' ? '/api/anime' : '/api/browse';
+      // Use unified browse API for all content types
+      const endpoint = '/api/browse';
 
       const response = await fetch(`${endpoint}?${params}`);
       const data = await response.json();

@@ -68,14 +68,14 @@ export default function Home() {
   const { data: trendingData, error: trendingError, isLoading: trendingLoading } = useSWR(
     activeCategory === 'movies' ? "/api/movies/trending?type=movie" :
     activeCategory === 'series' ? "/api/series/trending?type=tv" :
-    "/api/anime/trending",
+    "/api/movies/trending?type=anime",
     fetcher,
   );
 
   const { data: popularData, error: popularError, isLoading: popularLoading } = useSWR(
     activeCategory === 'movies' ? "/api/movies/popular?type=movie" :
     activeCategory === 'series' ? "/api/series/popular?type=tv" :
-    "/api/anime/popular",
+    "/api/movies/popular?type=anime",
     fetcher,
   );
 
@@ -101,13 +101,13 @@ export default function Home() {
   const { data: newestData, error: newestError, isLoading: newestLoading } = useSWR(
     activeCategory === 'movies' ? "/api/movies/now-playing?type=movie" :
     activeCategory === 'series' ? "/api/movies/now-playing?type=tv" :
-    "/api/anime/now-playing",
+    "/api/movies/now-playing?type=anime",
     fetcher,
   );
 
 
 
-  // Transform content data to match component interface
+// Transform content data to match component interface
   const transformContent = (item: ContentItem) => ({
     id: item.id,
     title: item.title || item.name || 'Unknown Title',
@@ -118,6 +118,7 @@ export default function Home() {
     year: item.release_date ? new Date(item.release_date).getFullYear().toString() :
           item.first_air_date ? new Date(item.first_air_date).getFullYear().toString() : '2024',
     genres: ['Action', 'Sci-Fi'], // TODO: Map genre_ids to actual genre names
+    contentType: activeCategory === 'anime' ? 'anime' : (activeCategory === 'movies' ? 'movie' : 'tv')
   });
 
   // Transform continue watching data

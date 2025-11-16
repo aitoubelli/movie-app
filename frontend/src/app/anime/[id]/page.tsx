@@ -65,7 +65,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
   const { user } = useAuth();
 
   const { data, error, isLoading } = useSWR(
-    `/api/anime/${resolvedParams.id}`,
+    `/api/movies/${resolvedParams.id}?type=anime`,
     fetcher,
   );
 

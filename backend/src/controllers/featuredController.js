@@ -1,6 +1,5 @@
 import FeaturedMovie from '../models/FeaturedMovie.js';
-import { getPopular } from '../services/tmdbService.js';
-import axios from 'axios';
+import { getPopular, getPopularAnime } from '../services/tmdbService.js';
 
 const validateMovieId = (movieId) => {
     const id = parseInt(movieId, 10);
@@ -101,27 +100,8 @@ export const getPopularByCategory = async (req, res) => {
 
         let data;
         if (category === 'anime') {
-            // For anime, call the anime popular API directly (uses Jikan API with MAL IDs)
-            try {
-                const animeResponse = await axios.get(`http://localhost:8000/api/anime/popular?page=1`, {
-                    timeout: 5000
-                });
-                data = {
-                    success: true,
-                    data: {
-                        results: animeResponse.data.data.results.slice(0, 10) // Limit to 10 items
-                    }
-                };
-            } catch (animeError) {
-                // Handle rate limiting or other anime API errors gracefully
-                console.warn('Anime API error:', animeError.response?.data || animeError.message);
-                data = {
-                    success: true,
-                    data: {
-                        results: [] // Return empty array instead of failing
-                    }
-                };
-            }
+            // For anime, use TMDB anime popular function
+            data = await getPopularAnime(1); // Get first page of popular anime
         } else {
             // Map frontend categories to TMDB types
             const typeMap = {

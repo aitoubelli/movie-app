@@ -5,7 +5,6 @@ import mongoose from 'mongoose';
 import redisClient from './src/config/redis.js';
 import moviesRouter from './src/routes/movies.js';
 import seriesRouter from './src/routes/series.js';
-import animeRouter from './src/routes/anime.js';
 import authRouter from './src/routes/auth.js';
 import watchlistRouter from './src/routes/watchlist.js';
 import commentsRouter from './src/routes/comments.js';
@@ -59,7 +58,6 @@ redisClient.connect().catch((error) => {
 
 app.use('/api/movies', moviesRouter);
 app.use('/api/series', seriesRouter);
-app.use('/api/anime', animeRouter);
 app.use('/api/watchlist', watchlistRouter);
 app.use('/api/comments', commentsRouter);
 app.use('/api/ratings', ratingsRouter);
