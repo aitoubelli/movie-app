@@ -13,6 +13,7 @@ import { LoginModal } from "@/components/LoginModal";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CommentsSection } from "@/components/CommentsSection";
+import { RatingSection } from "@/components/RatingSection";
 import { Pagination } from "@/components/Pagination";
 import { useAuth } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
@@ -649,6 +650,20 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
         </motion.div>
 
 
+
+        {/* Rating Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mt-16 pt-8"
+        >
+          <RatingSection
+            contentId={parseInt(resolvedParams.id)}
+            contentType="movie"
+          />
+        </motion.section>
 
         {/* Comments Section */}
         <motion.section

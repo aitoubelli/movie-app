@@ -12,6 +12,7 @@ import { TrailerModal } from "@/components/TrailerModal";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { CommentsSection } from "@/components/CommentsSection";
+import { RatingSection } from "@/components/RatingSection";
 import { useAuth } from "@/context/AuthContext";
 import { getAvatarUrl } from "@/lib/utils";
 import { toast } from "sonner";
@@ -647,6 +648,20 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
         </motion.div>
 
 
+
+        {/* Rating Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="mt-16 pt-8"
+        >
+          <RatingSection
+            contentId={parseInt(resolvedParams.id)}
+            contentType="series"
+          />
+        </motion.section>
 
         {/* Comments Section */}
         <motion.section
