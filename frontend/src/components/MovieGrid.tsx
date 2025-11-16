@@ -41,7 +41,7 @@ export function MovieGrid({ title, movies, category = 'movies', enableWatchlistT
 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-6">
           {movies.map((movie, index) => (
-            <MovieCard key={movie.id} movie={movie} index={index} category={category} enableWatchlistToggle={enableWatchlistToggle} showProgress={showProgress} />
+            <MovieCard key={`${movie.id}-${category}-${index}`} movie={movie} index={index} category={category} enableWatchlistToggle={enableWatchlistToggle} showProgress={showProgress} />
           ))}
         </div>
       </div>

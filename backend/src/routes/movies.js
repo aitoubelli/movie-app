@@ -24,7 +24,7 @@ const tmdbApi = axios.create({
 
 // Helper function to validate type parameter
 const validateType = (type) => {
-    const validTypes = ['movie', 'tv'];
+    const validTypes = ['movie', 'tv', 'anime'];
     return validTypes.includes(type);
 };
 
@@ -87,9 +87,31 @@ router.get('/popular', async (req, res) => {
 router.get('/now-playing', async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
+        const type = req.query.type || 'movie';
 
-        const response = await tmdbApi.get('/movie/now_playing', {
-            params: { page },
+        let endpoint, params = { page };
+        if (type === 'movie') {
+            endpoint = '/movie/now_playing';
+        } else if (type === 'tv') {
+            endpoint = '/tv/on_the_air';
+        } else if (type === 'anime') {
+            // For anime, get recent anime series from Japan
+            endpoint = '/discover/tv';
+            params = {
+                page,
+                with_genres: 16, // Animation genre
+                with_origin_country: 'JP',
+                sort_by: 'first_air_date.desc',
+                'first_air_date.gte': new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 90 days
+            };
+        } else {
+            return res.status(400).json({
+                error: 'Invalid type parameter. Must be "movie", "tv", or "anime"',
+            });
+        }
+
+        const response = await tmdbApi.get(endpoint, {
+            params,
         });
 
         const result = {
@@ -102,11 +124,11 @@ router.get('/now-playing', async (req, res) => {
 
         res.json(result);
     } catch (error) {
-        console.error('Error fetching now playing movies:', error.response?.data || error.message);
+        console.error('Error fetching now playing content:', error.response?.data || error.message);
 
         if (error.response?.status === 404) {
             return res.status(404).json({
-                error: 'Now playing movies not found',
+                error: 'Content not found',
             });
         }
 
@@ -117,7 +139,7 @@ router.get('/now-playing', async (req, res) => {
         }
 
         res.status(error.response?.status || 500).json({
-            error: 'Failed to fetch now playing movies',
+            error: 'Failed to fetch content',
         });
     }
 });

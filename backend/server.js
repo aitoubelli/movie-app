@@ -11,6 +11,7 @@ import watchlistRouter from './src/routes/watchlist.js';
 import commentsRouter from './src/routes/comments.js';
 import featuredRouter from './src/routes/featured.js';
 import continueWatchingRouter from './src/routes/continueWatching.js';
+import recommendationsRouter from './src/routes/recommendations.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -62,6 +63,7 @@ app.use('/api/comments', commentsRouter);
 app.use('/api/auth', authRouter);
 app.use('/api', featuredRouter);
 app.use('/api/continue-watching', continueWatchingRouter);
+app.use('/api/recommendations', recommendationsRouter);
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

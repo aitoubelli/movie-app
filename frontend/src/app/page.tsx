@@ -83,9 +83,17 @@ export default function Home() {
     (url: string) => authenticatedFetcher(url, user),
   );
 
+  // Fetch personalized recommendations (only if user is authenticated)
+  const { data: recommendationsData, error: recommendationsError, isLoading: recommendationsLoading } = useSWR(
+    user ? "/api/recommendations/personalized" : null,
+    (url: string) => authenticatedFetcher(url, user),
+  );
+
   // Fetch newest releases
   const { data: newestData, error: newestError, isLoading: newestLoading } = useSWR(
-    "/api/movies/now-playing",
+    activeCategory === 'movies' ? "/api/movies/now-playing?type=movie" :
+    activeCategory === 'series' ? "/api/movies/now-playing?type=tv" :
+    "/api/movies/now-playing?type=anime",
     fetcher,
   );
 
@@ -98,7 +106,7 @@ export default function Home() {
     title: item.title || item.name || 'Unknown Title',
     poster: item.poster_path
       ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : 'https://via.placeholder.com/500x750?text=No+Image',
+      : '/fallback-poster.svg',
     rating: item.vote_average,
     year: item.release_date ? new Date(item.release_date).getFullYear().toString() :
           item.first_air_date ? new Date(item.first_air_date).getFullYear().toString() : '2024',
@@ -111,7 +119,7 @@ export default function Home() {
     title: item.title || item.name || 'Unknown Title',
     poster: item.poster_path
       ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : 'https://via.placeholder.com/500x750?text=No+Image',
+      : '/fallback-poster.svg',
     rating: item.vote_average,
     year: item.release_date ? new Date(item.release_date).getFullYear().toString() :
           item.first_air_date ? new Date(item.first_air_date).getFullYear().toString() : '2024',
@@ -135,11 +143,50 @@ export default function Home() {
     title: movie.title || 'Unknown Title',
     poster: movie.poster_path
       ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-      : 'https://via.placeholder.com/500x750?text=No+Image',
+      : '/fallback-poster.svg',
     rating: movie.vote_average || 0,
     year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '2024',
     genres: movie.genres?.slice(0, 2).map((genre: any) => genre.name) || ['Action', 'Drama'],
   })) || [];
+
+  // Transform personalized recommendations data
+  const recommendedMovies = recommendationsData?.data?.results?.slice(0, 12).map((movie: any) => ({
+    id: movie.id,
+    title: movie.title || movie.name || 'Unknown Title',
+    poster: movie.poster_path
+      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+      : '/fallback-poster.svg',
+    rating: movie.vote_average || 0,
+    year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() :
+          movie.first_air_date ? new Date(movie.first_air_date).getFullYear().toString() : '2024',
+    genres: movie.genre_ids?.slice(0, 2).map((id: number) => {
+      // Simple genre mapping - in production you'd want a proper genre lookup
+      const genreMap: { [key: number]: string } = {
+        28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
+        99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
+        27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi',
+        10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western'
+      };
+      return genreMap[id] || 'Action';
+    }) || ['Action', 'Sci-Fi'],
+  })) || [];
+
+  // Create a fallback backdrop generator
+  const generateFallbackBackdrop = () => {
+    const svg = encodeURIComponent(`
+      <svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="backdropGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#1F2937"/>
+            <stop offset="100%" style="stop-color:#111827"/>
+          </linearGradient>
+        </defs>
+        <rect width="1920" height="1080" fill="url(#backdropGradient)"/>
+        <text x="960" y="540" text-anchor="middle" fill="#FFFFFF" font-family="Arial, sans-serif" font-size="48" font-weight="bold">No Image Available</text>
+      </svg>
+    `);
+    return `data:image/svg+xml,${svg}`;
+  };
 
   const featuredMovieData = featuredMovie ? {
     title: featuredMovie.title || featuredMovie.name || 'Unknown Title',
@@ -147,10 +194,10 @@ export default function Home() {
     rating: featuredMovie.vote_average,
     poster: featuredMovie.poster_path
       ? `https://image.tmdb.org/t/p/w500${featuredMovie.poster_path}`
-      : 'https://via.placeholder.com/500x750?text=No+Image',
+      : '/fallback-poster.svg',
     backdrop: featuredMovie.backdrop_path
       ? `https://image.tmdb.org/t/p/original${featuredMovie.backdrop_path}`
-      : 'https://via.placeholder.com/1920x1080?text=No+Image'
+      : generateFallbackBackdrop()
   } : null;
 
   if (trendingLoading || popularLoading || featuredIdsLoading) {
@@ -277,6 +324,11 @@ export default function Home() {
         {/* Continue Watching Section */}
         {user && continueWatchingMovies.length > 0 && (
           <MovieGrid title="Continue Watching" movies={continueWatchingMovies} category="movies" enableWatchlistToggle={true} showProgress={true} />
+        )}
+
+        {/* Recommended For You Section */}
+        {user && recommendedMovies.length > 0 && (
+          <MovieGrid title="Recommended For You" movies={recommendedMovies} category="movies" enableWatchlistToggle={true} />
         )}
 
         {/* Newest Releases Section */}

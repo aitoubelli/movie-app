@@ -68,10 +68,7 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
     fetcher,
   );
 
-  const { data: recommendationsData } = useSWR(
-    `/api/series/tv/${resolvedParams.id}/recommendations?type=tv`,
-    fetcher,
-  );
+
 
   // Authenticated fetcher for watchlist
   const authenticatedFetcher = async (url: string, user: any) => {
@@ -411,25 +408,6 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
   }
 
   const topCast = series.credits?.cast?.slice(0, 6) || [];
-  const recommendedSeries = recommendationsData?.data?.results?.slice(0, 12).map((rec: any) => ({
-    id: rec.id,
-    title: rec.name || rec.title || 'Unknown Title',
-    poster: rec.poster_path
-      ? `https://image.tmdb.org/t/p/w500${rec.poster_path}`
-      : 'https://via.placeholder.com/500x750?text=No+Image',
-    rating: rec.vote_average,
-    year: rec.first_air_date ? new Date(rec.first_air_date).getFullYear().toString() :
-          rec.release_date ? new Date(rec.release_date).getFullYear().toString() : '2024',
-    genres: rec.genre_ids?.slice(0, 2).map((id: number) => {
-      const genreMap: { [key: number]: string } = {
-        28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
-        99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
-        27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi',
-        10770: 'TV Movie', 53: 'Thriller', 10752: 'War', 37: 'Western'
-      };
-      return genreMap[id] || 'Unknown';
-    }) || ['Action', 'Sci-Fi'],
-  })) || [];
 
   const transformedComments = commentsData?.comments?.map((comment: any) => ({
     id: comment._id,
@@ -668,24 +646,7 @@ export default function SeriesDetail({ params }: { params: Promise<{ id: string 
           </div>
         </motion.div>
 
-        {/* Recommended Series */}
-        {recommendedSeries.length > 0 && (
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            <h2 className="text-3xl mb-8 bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent">
-              Recommended For You
-            </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
-              {recommendedSeries.map((series: any, index: number) => (
-                <MovieCard key={series.id} movie={series} index={index} category="series" />
-              ))}
-            </div>
-          </motion.section>
-        )}
+
 
         {/* Comments Section */}
         <motion.section
