@@ -50,6 +50,7 @@ export function Navbar() {
   };
 
   const browseCategories = [
+    { name: 'Browse', href: '/browse' },
     { name: 'Trending', href: '/' },
     { name: 'Popular', href: '/popular' },
     { name: 'Upcoming', href: '/upcoming' },
