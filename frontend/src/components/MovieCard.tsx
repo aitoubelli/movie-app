@@ -37,6 +37,7 @@ export function MovieCard({ movie, index, category = 'movies', enableWatchlistTo
         case 'movie':
           return 'movies';
         case 'tv':
+        case 'series':
           return 'series';
         case 'anime':
           return 'anime';

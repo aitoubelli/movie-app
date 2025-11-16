@@ -184,6 +184,7 @@ export default function Home() {
       };
       return genreMap[id] || 'Action';
     }) || ['Action', 'Sci-Fi'],
+    contentType: movie.contentType, // Preserve content type from backend
   })) || [];
 
   if (trendingLoading || popularLoading || featuredMoviesLoading) {
