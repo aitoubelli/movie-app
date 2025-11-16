@@ -16,7 +16,7 @@ import { CommentsSection } from "@/components/CommentsSection";
 import { RatingSection } from "@/components/RatingSection";
 import { Pagination } from "@/components/Pagination";
 import { useAuth } from "@/context/AuthContext";
-import { getAvatarUrl } from "@/lib/utils";
+import { getAvatarUrl, getApiUrl } from "@/lib/utils";
 import { toast } from "sonner";
 import { use } from "react";
 
@@ -67,7 +67,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
   const { user, profileData } = useAuth();
 
   const { data, error, isLoading } = useSWR(
-    `/api/movies/content/movie/${resolvedParams.id}`,
+    getApiUrl(`/api/movies/content/movie/${resolvedParams.id}`),
     fetcher,
   );
 
@@ -87,13 +87,13 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
 
   // Fetch watchlist if user is authenticated
   const { data: watchlistData, mutate: mutateWatchlist } = useSWR(
-    user ? 'http://localhost:8000/api/watchlist' : null,
+    user ? getApiUrl('/api/watchlist') : null,
     (url: string) => authenticatedFetcher(url, user)
   );
 
   // Fetch comments
   const { data: commentsData, mutate: mutateComments } = useSWR(
-    `/api/comments/${resolvedParams.id}?contentType=movie&page=${commentsPage}&sortBy=${sortBy}`,
+    getApiUrl(`/api/comments/${resolvedParams.id}?contentType=movie&page=${commentsPage}&sortBy=${sortBy}`),
     fetcher,
   );
 

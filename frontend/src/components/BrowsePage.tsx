@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { SlidersHorizontal, X, ChevronDown, Grid3x3, List } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { MovieCard } from '@/components//BrowseMovieCard';
+import { getApiUrl } from '@/lib/utils';
 
 interface BrowsePageProps {
   initialFilters?: {
@@ -88,9 +89,7 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
       });
 
       // Use unified browse API for all content types
-      const endpoint = '/api/browse';
-
-      const response = await fetch(`${endpoint}?${params}`);
+      const response = await fetch(`${getApiUrl('/api/browse')}?${params}`);
       const data = await response.json();
 
       if (data.success) {

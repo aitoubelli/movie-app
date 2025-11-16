@@ -6,6 +6,7 @@ import { StarRating } from "@/components/StarRating";
 import { RatingDisplay } from "@/components/RatingDisplay";
 import { useAuth } from "@/context/AuthContext";
 import { toast } from "sonner";
+import { getApiUrl } from "@/lib/utils";
 
 interface RatingSectionProps {
   contentId: number;
@@ -20,7 +21,7 @@ export function RatingSection({ contentId, contentType }: RatingSectionProps) {
 
   // Fetch rating data - works for both authenticated and non-authenticated users
   const { data: ratingData, mutate: mutateRating, isLoading } = useSWR(
-    `/api/ratings/${contentId}?contentType=${contentType}`,
+    getApiUrl(`/api/ratings/${contentId}?contentType=${contentType}`),
     fetcher
   );
 
@@ -33,7 +34,7 @@ export function RatingSection({ contentId, contentType }: RatingSectionProps) {
     setIsSubmitting(true);
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/ratings', {
+      const response = await fetch(getApiUrl('/api/ratings'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

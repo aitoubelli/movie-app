@@ -1,6 +1,11 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 
+// API utility function for constructing backend URLs
+export const getApiUrl = (endpoint: string) => {
+  return `${process.env.NEXT_PUBLIC_BACKEND_URL}${endpoint}`;
+};
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

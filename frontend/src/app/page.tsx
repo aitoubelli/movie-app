@@ -11,6 +11,7 @@ import { Footer } from "@/components/Footer";
 import { Film, Tv, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { getApiUrl } from '@/lib/utils';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -74,42 +75,42 @@ export default function Home() {
   };
 
   const { data: trendingData, error: trendingError, isLoading: trendingLoading } = useSWR(
-    activeCategory === 'movies' ? "/api/movies/trending?type=movie" :
-    activeCategory === 'series' ? "/api/series/trending?type=tv" :
-    "/api/movies/trending?type=anime",
+    activeCategory === 'movies' ? getApiUrl("/api/movies/trending?type=movie") :
+    activeCategory === 'series' ? getApiUrl("/api/series/trending?type=tv") :
+    getApiUrl("/api/movies/trending?type=anime"),
     fetcher,
   );
 
   const { data: popularData, error: popularError, isLoading: popularLoading } = useSWR(
-    activeCategory === 'movies' ? "/api/movies/popular?type=movie" :
-    activeCategory === 'series' ? "/api/series/popular?type=tv" :
-    "/api/movies/popular?type=anime",
+    activeCategory === 'movies' ? getApiUrl("/api/movies/popular?type=movie") :
+    activeCategory === 'series' ? getApiUrl("/api/series/popular?type=tv") :
+    getApiUrl("/api/movies/popular?type=anime"),
     fetcher,
   );
 
   // Fetch popular movies for the current category (replaces static featured movies)
   const { data: featuredMoviesData, error: featuredMoviesError, isLoading: featuredMoviesLoading } = useSWR(
-    `/api/featured/popular/${activeCategory}`,
+    getApiUrl(`/api/featured/popular/${activeCategory}`),
     fetcher,
   );
 
   // Fetch continue watching data (only if user is authenticated)
   const { data: continueWatchingData, error: continueWatchingError, isLoading: continueWatchingLoading } = useSWR(
-    user ? "/api/continue-watching" : null,
+    user ? getApiUrl("/api/continue-watching") : null,
     (url: string) => authenticatedFetcher(url, user),
   );
 
   // Fetch personalized recommendations (only if user is authenticated)
   const { data: recommendationsData, error: recommendationsError, isLoading: recommendationsLoading } = useSWR(
-    user ? "/api/recommendations/personalized" : null,
+    user ? getApiUrl("/api/recommendations/personalized") : null,
     (url: string) => authenticatedFetcher(url, user),
   );
 
   // Fetch newest releases
   const { data: newestData, error: newestError, isLoading: newestLoading } = useSWR(
-    activeCategory === 'movies' ? "/api/movies/now-playing?type=movie" :
-    activeCategory === 'series' ? "/api/movies/now-playing?type=tv" :
-    "/api/movies/now-playing?type=anime",
+    activeCategory === 'movies' ? getApiUrl("/api/movies/now-playing?type=movie") :
+    activeCategory === 'series' ? getApiUrl("/api/movies/now-playing?type=tv") :
+    getApiUrl("/api/movies/now-playing?type=anime"),
     fetcher,
   );
 

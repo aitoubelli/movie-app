@@ -15,13 +15,15 @@ import recommendationsRouter from './src/routes/recommendations.js';
 import browseRouter from './src/routes/browse.js';
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 8000;
 
 app.use(express.json());
 
 app.use(
     cors({
-        origin: 'http://localhost:3000',
+        origin: [
+            'http://localhost:3000',
+            'https://cinestream.pages.dev'],
         credentials: true,
     }),
 );

@@ -14,7 +14,7 @@ import { Footer } from "@/components/Footer";
 import { CommentsSection } from "@/components/CommentsSection";
 import { RatingSection } from "@/components/RatingSection";
 import { useAuth } from "@/context/AuthContext";
-import { getAvatarUrl } from "@/lib/utils";
+import { getAvatarUrl, getApiUrl } from "@/lib/utils";
 import { toast } from "sonner";
 import { use } from "react";
 
@@ -65,7 +65,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
   const { user, profileData } = useAuth();
 
   const { data, error, isLoading } = useSWR(
-    `/api/movies/${resolvedParams.id}?type=anime`,
+    getApiUrl(`/api/movies/${resolvedParams.id}?type=anime`),
     fetcher,
   );
 
@@ -85,13 +85,13 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
 
   // Fetch watchlist if user is authenticated
   const { data: watchlistData, mutate: mutateWatchlist } = useSWR(
-    user ? 'http://localhost:8000/api/watchlist' : null,
+    user ? getApiUrl('/api/watchlist') : null,
     (url: string) => authenticatedFetcher(url, user)
   );
 
   // Fetch comments
   const { data: commentsData, mutate: mutateComments } = useSWR(
-    `/api/comments/${resolvedParams.id}?contentType=anime&sortBy=${sortBy}`,
+    getApiUrl(`/api/comments/${resolvedParams.id}?contentType=anime&sortBy=${sortBy}`),
     fetcher,
   );
 
@@ -119,7 +119,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
     try {
       const idToken = await user.getIdToken();
       const response = await fetch(
-        newIsInWatchlist ? 'http://localhost:8000/api/watchlist' : `http://localhost:8000/api/watchlist/${resolvedParams.id}`,
+        newIsInWatchlist ? getApiUrl('/api/watchlist') : getApiUrl(`/api/watchlist/${resolvedParams.id}`),
         {
           method: newIsInWatchlist ? 'POST' : 'DELETE',
           headers: {
@@ -168,7 +168,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/comments', {
+      const response = await fetch(getApiUrl('/api/comments'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -215,7 +215,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/comments/reply', {
+      const response = await fetch(getApiUrl('/api/comments/reply'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -258,7 +258,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`/api/comments/${commentId}/like`, {
+      const response = await fetch(getApiUrl(`/api/comments/${commentId}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -284,7 +284,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`/api/comments/reply/${replyId}/like`, {
+      const response = await fetch(getApiUrl(`/api/comments/reply/${replyId}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -473,7 +473,7 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
                     if (user) {
                       try {
                         const idToken = await user.getIdToken();
-                        const response = await fetch('http://localhost:8000/api/continue-watching', {
+                        const response = await fetch(getApiUrl('/api/continue-watching'), {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
