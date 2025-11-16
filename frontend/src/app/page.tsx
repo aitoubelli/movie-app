@@ -94,7 +94,7 @@ export default function Home() {
   const { data: newestData, error: newestError, isLoading: newestLoading } = useSWR(
     activeCategory === 'movies' ? "/api/movies/now-playing?type=movie" :
     activeCategory === 'series' ? "/api/movies/now-playing?type=tv" :
-    "/api/movies/now-playing?type=anime",
+    "/api/anime/now-playing",
     fetcher,
   );
 
@@ -105,9 +105,9 @@ export default function Home() {
   const transformContent = (item: ContentItem) => ({
     id: item.id,
     title: item.title || item.name || 'Unknown Title',
-    poster: item.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : '/fallback-poster.svg',
+    poster: item.poster_path && item.poster_path.startsWith('http')
+      ? item.poster_path
+      : (item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '/fallback-poster.svg'),
     rating: item.vote_average,
     year: item.release_date ? new Date(item.release_date).getFullYear().toString() :
           item.first_air_date ? new Date(item.first_air_date).getFullYear().toString() : '2024',
@@ -118,9 +118,9 @@ export default function Home() {
   const continueWatchingMovies = continueWatchingData?.data?.results?.slice(0, 6).map((item: ContentItem) => ({
     id: item.id,
     title: item.title || item.name || 'Unknown Title',
-    poster: item.poster_path
-      ? `https://image.tmdb.org/t/p/w500${item.poster_path}`
-      : '/fallback-poster.svg',
+    poster: item.poster_path && item.poster_path.startsWith('http')
+      ? item.poster_path
+      : (item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : '/fallback-poster.svg'),
     rating: item.vote_average,
     year: item.release_date ? new Date(item.release_date).getFullYear().toString() :
           item.first_air_date ? new Date(item.first_air_date).getFullYear().toString() : '2024',
@@ -143,9 +143,9 @@ export default function Home() {
   const featuredMovies = featuredMoviesData?.map((movie: any) => ({
     id: movie.id,
     title: movie.title || 'Unknown Title',
-    poster: movie.poster_path
-      ? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
-      : '/fallback-poster.svg',
+    poster: movie.poster_path && movie.poster_path.startsWith('http')
+      ? movie.poster_path
+      : (movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : '/fallback-poster.svg'),
     rating: movie.vote_average || 0,
     year: movie.release_date ? new Date(movie.release_date).getFullYear().toString() : '2024',
     genres: movie.genres?.slice(0, 2).map((genre: any) => genre.name) || ['Action', 'Drama'],
@@ -194,12 +194,12 @@ export default function Home() {
     title: featuredMovie.title || featuredMovie.name || 'Unknown Title',
     description: featuredMovie.overview || 'No description available.',
     rating: featuredMovie.vote_average,
-    poster: featuredMovie.poster_path
-      ? `https://image.tmdb.org/t/p/w500${featuredMovie.poster_path}`
-      : '/fallback-poster.svg',
-    backdrop: featuredMovie.backdrop_path
-      ? `https://image.tmdb.org/t/p/original${featuredMovie.backdrop_path}`
-      : generateFallbackBackdrop()
+    poster: featuredMovie.poster_path && featuredMovie.poster_path.startsWith('http')
+      ? featuredMovie.poster_path
+      : (featuredMovie.poster_path ? `https://image.tmdb.org/t/p/w500${featuredMovie.poster_path}` : '/fallback-poster.svg'),
+    backdrop: featuredMovie.backdrop_path && featuredMovie.backdrop_path.startsWith('http')
+      ? featuredMovie.backdrop_path
+      : (featuredMovie.backdrop_path ? `https://image.tmdb.org/t/p/original${featuredMovie.backdrop_path}` : generateFallbackBackdrop())
   } : null;
 
   if (trendingLoading || popularLoading || featuredIdsLoading) {

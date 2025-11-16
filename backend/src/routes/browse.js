@@ -8,19 +8,13 @@ const API_KEY = process.env.TMDB_API_KEY;
 
 const tmdbApi = axios.create({
     baseURL: TMDB_BASE_URL,
+    timeout: 5000, // 5s timeout as requested
     params: {
         api_key: API_KEY,
     },
 });
 
-// Validate type parameter
-const validateType = (type) => {
-    const validTypes = ['movie', 'tv', 'anime'];
-    if (type === 'anime') return 'tv'; // Handle anime as tv with animation genre
-    return validTypes.includes(type) ? type : null;
-};
-
-// Get genre IDs from names
+// Get genre IDs from names - read-only mapping
 const genreMap = {
     movie: {
         'Action': 28,
@@ -59,13 +53,163 @@ const genreMap = {
 };
 
 // Map to TMDB genres
-const getGenreId = (genreName, type) => {
+const getGenreId = (genreName, contentType) => {
     if (genreName === 'all') return null;
 
     // Handle case-insensitive lookup
     const normalizedGenre = genreName.charAt(0).toUpperCase() + genreName.slice(1).toLowerCase();
 
-    return genreMap[type]?.[normalizedGenre] || null;
+    return genreMap[contentType]?.[normalizedGenre] || null;
+};
+
+// Map sortBy to TMDB parameters
+const getSortParams = (sortBy, contentType) => {
+    switch (sortBy) {
+        case 'popular':
+            return { sort_by: 'popularity.desc' };
+        case 'top_rated':
+            return {
+                sort_by: 'vote_average.desc',
+                'vote_count.gte': contentType === 'movie' ? 100 : 50
+            };
+        case 'newest':
+            return {
+                sort_by: contentType === 'movie' ? 'release_date.desc' : 'first_air_date.desc'
+            };
+        case 'trending':
+            return null; // Use trending endpoint instead
+        default:
+            return { sort_by: 'popularity.desc' };
+    }
+};
+
+// Build complete TMDB params for filters
+const buildFilterParams = (filters, contentType) => {
+    const params = {};
+
+    // Genre filter
+    if (filters.genre !== 'all') {
+        const genreId = getGenreId(filters.genre, contentType);
+        if (genreId) {
+            params.with_genres = genreId;
+        }
+    }
+
+    // Year filter
+    if (filters.year !== 'all') {
+        params[contentType === 'movie' ? 'primary_release_year' : 'first_air_date_year'] = filters.year;
+    }
+
+    // Rating filter (exact value, no padding)
+    if (filters.rating !== 'all') {
+        const minRating = parseFloat(filters.rating);
+        params['vote_average.gte'] = minRating;
+        params['vote_count.gte'] = 1; // Ensure some quality
+    }
+
+    // Language filter
+    if (filters.language !== 'all') {
+        params.with_original_language = filters.language.toLowerCase();
+    }
+
+    return params;
+};
+
+// Removed anime handling - now handled by separate /api/anime route
+
+// Format TMDB item to our response format (movies & TV only)
+const formatContentItem = (item, contentType) => ({
+    id: item.id,
+    title: item.title || item.name,
+    poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+    rating: item.vote_average || 0,
+    year: (item.release_date || item.first_air_date)?.substring(0, 4) || 'Unknown',
+    type: contentType,
+    genres: item.genre_ids || [] // Include genre IDs like TMDB provides
+});
+
+// Fetch results for movies or TV only (24 results per page)
+const fetchSingleType = async (contentType, filters, pageNum) => {
+    const params = { page: pageNum };
+    let endpoint;
+
+    // Choose endpoint based on sortBy
+    if (filters.sortBy === 'trending') {
+        endpoint = `/trending/${contentType}/day`;
+    } else {
+        const sortParams = getSortParams(filters.sortBy, contentType);
+        if (sortParams) {
+            Object.assign(params, sortParams);
+        }
+
+        // Use discover when we have filters, or popular/top_rated for others
+        const hasFilters = filters.genre !== 'all' || filters.year !== 'all' ||
+            filters.rating !== 'all' || filters.language !== 'all';
+
+        if (hasFilters) {
+            endpoint = `/discover/${contentType}`;
+        } else {
+            if (filters.sortBy === 'popular') {
+                endpoint = `/${contentType}/popular`;
+            } else if (filters.sortBy === 'top_rated') {
+                endpoint = `/${contentType}/top_rated`;
+            } else {
+                endpoint = `/discover/${contentType}`;
+            }
+        }
+    }
+
+    // Build and merge filter parameters
+    const filterParams = buildFilterParams(filters, contentType);
+    Object.assign(params, filterParams);
+
+    try {
+        const response = await tmdbApi.get(endpoint, { params });
+        const results = response.data.results.map(item =>
+            formatContentItem(item, contentType)
+        );
+
+        return {
+            results,
+            totalResults: response.data.total_results,
+            totalPages: response.data.total_pages
+        };
+    } catch (error) {
+        console.error(`Error fetching ${contentType}:`, error.message);
+        throw error;
+    }
+};
+
+// Fetch and interleave movies and TV for type="all"
+const fetchAllTypes = async (filters, pageNum) => {
+    try {
+        // Fetch movies and TV separately for this page
+        const [movieData, tvData] = await Promise.all([
+            fetchSingleType('movie', { ...filters, type: 'movie' }, pageNum),
+            fetchSingleType('tv', { ...filters, type: 'tv' }, pageNum)
+        ]);
+
+        const movies = movieData.results || [];
+        const tvShows = tvData.results || [];
+
+        // Interleave: movie, tv, movie, tv...
+        const interleaved = [];
+        const maxLen = Math.max(movies.length, tvShows.length);
+
+        for (let i = 0; i < maxLen && interleaved.length < 24; i++) {
+            if (i < movies.length) interleaved.push(movies[i]);
+            if (i < tvShows.length && interleaved.length < 24) interleaved.push(tvShows[i]);
+        }
+
+        return {
+            results: interleaved,
+            totalResults: movieData.totalResults + tvData.totalResults,
+            totalPages: Math.max(movieData.totalPages, tvData.totalPages)
+        };
+    } catch (error) {
+        console.error('Error fetching all types:', error.message);
+        throw error;
+    }
 };
 
 router.get('/', async (req, res) => {
@@ -77,272 +221,44 @@ router.get('/', async (req, res) => {
             rating = 'all',
             sortBy = 'popular',
             language = 'all',
-            quality = 'all',
             search = '',
             page = 1
         } = req.query;
 
         const pageNum = parseInt(page) || 1;
-        const resultsPerPage = 24;
 
         // If there's a search query, redirect to search
         if (search && search.length >= 2) {
             return res.redirect(`/search?q=${encodeURIComponent(search)}&type=${type}&page=${page}`);
         }
 
-        let finalResults = [];
-        let totalResults = 0;
-        let totalPages = 1;
-
-        // Special handling for 'all' type to combine movies and TV shows
-        if (type === 'all') {
-            const itemsNeeded = resultsPerPage;
-            let currentPage = pageNum;
-            let collectedResults = [];
-            let moviesResults = [];
-            let tvResults = [];
-
-            // Get base parameters for filtering
-            let movieParams = { page: currentPage, sort_by: 'popularity.desc' };
-            let tvParams = { page: currentPage, sort_by: 'popularity.desc' };
-
-            // Apply sorting logic for 'all'
-            if (sortBy === 'popular') {
-                movieParams.sort_by = 'popularity.desc';
-                tvParams.sort_by = 'popularity.desc';
-            } else if (sortBy === 'top_rated') {
-                movieParams.sort_by = 'vote_average.desc';
-                tvParams.sort_by = 'vote_average.desc';
-                movieParams['vote_count.gte'] = 100;
-                tvParams['vote_count.gte'] = 50;
-            } else if (sortBy === 'upcoming') {
-                // Only movies for upcoming
-                movieParams = { page: currentPage };
-                tvParams = null;
-            } else if (sortBy === 'now_playing') {
-                movieParams = { page: currentPage };
-                tvParams = { page: currentPage, sort_by: 'first_air_date.desc' };
-            }
-
-            // Apply filters
-            if (genre !== 'all') {
-                // For 'all', we need to get genre IDs for both movie and tv
-                const movieGenreId = getGenreId(genre, 'movie');
-                const tvGenreId = getGenreId(genre, 'tv');
-
-                if (movieGenreId) movieParams.with_genres = movieGenreId;
-                if (tvGenreId) tvParams.with_genres = tvGenreId;
-            }
-
-            if (year !== 'all') {
-                movieParams.primary_release_year = year;
-                if (tvParams) tvParams.first_air_date_year = year;
-            }
-
-            if (rating !== 'all') {
-                const minRating = parseFloat(rating.replace('+', ''));
-                movieParams['vote_average.gte'] = minRating;
-                tvParams['vote_average.gte'] = minRating;
-                movieParams['vote_count.gte'] = 10;
-                tvParams['vote_count.gte'] = 10;
-            }
-
-            if (language !== 'all') {
-                const langCode = language.substring(0, 2).toLowerCase();
-                movieParams.with_original_language = langCode;
-                tvParams.with_original_language = langCode;
-            }
-
-            console.log('All type - Movie params:', movieParams, 'TV params:', tvParams);
-
-            // Make API calls in parallel
-            const apiPromises = [];
-            if (movieParams) apiPromises.push(tmdbApi.get('/discover/movie', { params: movieParams }));
-            if (tvParams) apiPromises.push(tmdbApi.get('/discover/tv', { params: tvParams }));
-
-            const responses = await Promise.allSettled(apiPromises);
-
-            // Process responses
-            responses.forEach((result, index) => {
-                if (result.status === 'fulfilled') {
-                    const data = result.value.data;
-
-                    // Add type identification to results
-                    const formattedResults = data.results.map(item => ({
-                        id: item.id, // Keep original ID for API purposes
-                        uniqueId: `${item.media_type || (item.title ? 'movie' : 'tv')}_${item.id}`, // Unique key for React
-                        title: item.title || item.name,
-                        poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
-                        rating: item.vote_average,
-                        year: (item.release_date || item.first_air_date)?.substring(0, 4) || 'Unknown',
-                        genres: item.genre_ids ? [] : [],
-                        overview: item.overview,
-                        type: item.media_type || (item.title ? 'movie' : 'tv')
-                    }));
-
-                    if (index === 0 && movieParams) {
-                        moviesResults = formattedResults.slice(0, 12); // Take half from movies
-                        totalResults += data.total_results;
-                        totalPages = Math.max(totalPages, data.total_pages);
-                    } else if (tvParams) {
-                        tvResults = formattedResults.slice(0, 12); // Take half from TV
-                        totalResults += data.total_results;
-                        totalPages = Math.max(totalPages, data.total_pages);
-                    }
-                }
+        // Validate type parameter
+        if (type !== 'all' && type !== 'movie' && type !== 'tv') {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid type parameter. Must be "all", "movie", or "tv".',
             });
+        }
 
-            // Combine results: alternate between movies and TV shows for better mix
-            finalResults = [];
-            const maxLen = Math.max(moviesResults.length, tvResults.length);
-            for (let i = 0; i < maxLen; i++) {
-                if (i < moviesResults.length) finalResults.push(moviesResults[i]);
-                if (i < tvResults.length) finalResults.push(tvResults[i]);
-            }
+        const filters = { type, genre, year, rating, sortBy, language };
 
-            // Ensure exactly 24 results, prioritized by original sort
-            finalResults = finalResults.slice(0, resultsPerPage);
+        let responseData;
 
+        if (type === 'all') {
+            // Fetch movies and TV, then interleave
+            responseData = await fetchAllTypes(filters, pageNum);
         } else {
-            // Single type handling (movie, tv, anime) - get exactly 24 results
-            let collectedResults = [];
-
-            // Map logical page to TMDB pages: page 1 = TMDB pages 1&2, page 2 = TMDB pages 3&4, etc.
-            const tmdbPage1 = (pageNum * 2) - 1; // page 1 -> 1, page 2 -> 3, page 3 -> 5
-            const tmdbPage2 = (pageNum * 2);     // page 1 -> 2, page 2 -> 4, page 3 -> 6
-            const tmdbPages = [tmdbPage1, tmdbPage2];
-
-            // Make up to 2 API calls to get enough results for 24 items
-            for (let callIndex = 0; callIndex < 2 && collectedResults.length < resultsPerPage; callIndex++) {
-                const currentPage = tmdbPages[callIndex];
-                let endpoint, params = { page: currentPage };
-
-                // Build parameters based on filters
-                if (sortBy === 'popular') {
-                    const validType = validateType(type);
-                    if (validType === 'movie') {
-                        endpoint = '/movie/popular';
-                    } else if (validType === 'tv') {
-                        if (type === 'anime') {
-                            endpoint = '/discover/tv';
-                            params.with_genres = 16;
-                            params.with_origin_country = 'JP';
-                            params.sort_by = 'popularity.desc';
-                        } else {
-                            endpoint = '/tv/popular';
-                        }
-                    }
-                } else if (sortBy === 'top_rated') {
-                    const validType = validateType(type);
-                    if (validType === 'movie') {
-                        endpoint = '/movie/top_rated';
-                    } else if (validType === 'tv') {
-                        if (type === 'anime') {
-                            endpoint = '/discover/tv';
-                            params.with_genres = 16;
-                            params.with_origin_country = 'JP';
-                            params.sort_by = 'vote_average.desc';
-                            params['vote_count.gte'] = 50;
-                        } else {
-                            endpoint = '/tv/top_rated';
-                        }
-                    }
-                } else if (sortBy === 'upcoming') {
-                    endpoint = '/movie/upcoming';
-                } else if (sortBy === 'now_playing') {
-                    if (type === 'movie') {
-                        endpoint = '/movie/now_playing';
-                    } else {
-                        endpoint = '/tv/on_the_air';
-                    }
-                } else {
-                    endpoint = validateType(type) === 'movie' ? '/discover/movie' : '/discover/tv';
-                    params.sort_by = 'popularity.desc';
-                }
-
-                // Apply filters
-                if (genre !== 'all') {
-                    const genreId = getGenreId(genre, validateType(type) || 'movie');
-                    if (genreId) {
-                        params.with_genres = genreId;
-                    }
-                }
-
-                if (year !== 'all') {
-                    if (type === 'movie') {
-                        params.primary_release_year = year;
-                    } else {
-                        params.first_air_date_year = year;
-                    }
-                }
-
-                if (rating !== 'all') {
-                    const minRating = parseFloat(rating.replace('+', ''));
-                    params['vote_average.gte'] = minRating;
-                    params['vote_count.gte'] = 10;
-                }
-
-                if (language !== 'all') {
-                    params.with_original_language = language.substring(0, 2).toLowerCase();
-                }
-
-                // Handle anime specific filtering
-                if (type === 'anime') {
-                    params.with_genres = params.with_genres ? `${params.with_genres},16` : 16;
-                    params.with_origin_country = 'JP';
-                }
-
-                console.log('Single type endpoint:', endpoint, 'params:', params);
-
-                const response = await tmdbApi.get(endpoint, { params });
-
-                // Format response to match component interface
-                const formattedResults = response.data.results.map(item => ({
-                    id: item.id, // Keep original ID for API purposes
-                    uniqueId: `${type === 'anime' ? 'anime' : (item.media_type || (item.title ? 'movie' : 'tv'))}_${item.id}`, // Unique key for React
-                    title: item.title || item.name,
-                    poster: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
-                    rating: item.vote_average,
-                    year: (item.release_date || item.first_air_date)?.substring(0, 4) || 'Unknown',
-                    genres: item.genre_ids ? [] : [],
-                    overview: item.overview,
-                    type: type === 'anime' ? 'anime' : (item.media_type || (item.title ? 'movie' : 'tv'))
-                }));
-
-                // Add this page's results to collected results
-                collectedResults = [...collectedResults, ...formattedResults];
-
-                // Use the total results and pages from the first response
-                if (callIndex === 0) {
-                    totalResults = response.data.total_results;
-                    totalPages = response.data.total_pages;
-                }
-
-                // Break if we have enough results
-                if (collectedResults.length >= resultsPerPage) {
-                    break;
-                }
-            }
-
-            // Limit to exactly 24 results
-            finalResults = collectedResults.slice(0, resultsPerPage);
+            // Single type: movie or tv only
+            responseData = await fetchSingleType(type, filters, pageNum);
         }
 
         res.json({
             success: true,
-            results: finalResults,
+            results: responseData.results,
             page: pageNum,
-            totalPages: totalPages,
-            totalResults: totalResults,
-            filters: {
-                type,
-                genre,
-                year,
-                rating,
-                sortBy,
-                language,
-                quality
-            }
+            totalPages: responseData.totalPages,
+            totalResults: responseData.totalResults,
+            appliedFilters: filters
         });
 
     } catch (error) {

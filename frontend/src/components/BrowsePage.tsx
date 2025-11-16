@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SlidersHorizontal, X, ChevronDown, Grid3x3, List } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { MovieCard } from '@/components//BrowseMovieCard';
 
 interface BrowsePageProps {
@@ -24,17 +25,26 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [appending, setAppending] = useState(false);
+  const router = useRouter();
+
+  const handleCardClick = (movie: any) => {
+    const baseRoute =
+      movie.type === 'anime' ? '/anime' :
+      movie.type === 'tv' || movie.type === 'series' ? '/series' :
+      '/movies';
+
+    router.push(`${baseRoute}/${movie.id}`);
+  };
 
   // Filters
   const [filters, setFilters] = useState({
     search: initialFilters.search || '',
-    type: initialFilters.type || 'all',
+    type: initialFilters.type || 'movie',
     genre: initialFilters.genre || 'all',
     year: initialFilters.year || 'all',
     rating: 'all',
     sortBy: initialFilters.category || 'popular',
-    language: 'all',
-    quality: 'all'
+    language: 'all'
   });
 
   const genres = [
@@ -45,25 +55,26 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
 
   const years = ['All', '2025', '2024', '2023', '2022', '2021', '2020', '2019', '2018'];
   const ratings = ['All', '9+', '8+', '7+', '6+', '5+'];
-  const sortOptions = ['Popular', 'Top Rated', 'Upcoming', 'Newest'];
+  const sortOptions = ['Popular', 'Top Rated', 'Newest', 'Trending'];
   const languages = ['All', 'English', 'Japanese', 'Korean', 'Spanish', 'French'];
-  const qualities = ['All', '4K', '1080p', '720p'];
 
   const handleFilterChange = (key: string, value: string) => {
+    // Clear results and reset state when changing filters (especially content type)
+    setResults([]);
+    setCurrentPage(1);
+    setAppending(false); // Reset appending state
     setFilters(prev => ({ ...prev, [key]: value }));
-    setCurrentPage(1); // Reset to first page when filters change
   };
 
   const resetFilters = () => {
     setFilters({
       search: '',
-      type: 'all',
+      type: 'movie',
       genre: 'all',
       year: 'all',
       rating: 'all',
       sortBy: 'popular',
-      language: 'all',
-      quality: 'all'
+      language: 'all'
     });
     setCurrentPage(1);
   };
@@ -76,7 +87,10 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
         page: page.toString()
       });
 
-      const response = await fetch(`/api/browse?${params}`);
+      // Determine which API endpoint to call based on type
+      const endpoint = filters.type === 'anime' ? '/api/anime' : '/api/browse';
+
+      const response = await fetch(`${endpoint}?${params}`);
       const data = await response.json();
 
       if (data.success) {
@@ -151,7 +165,6 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
                   onChange={(e) => handleFilterChange('type', e.target.value)}
                   className="w-full px-4 py-2.5 rounded-lg bg-black/60 border border-cyan-500/30 text-cyan-100 focus:outline-none focus:border-cyan-400/60 cursor-pointer"
                 >
-                  <option value="all">All</option>
                   <option value="movie">Movies</option>
                   <option value="tv">Series</option>
                   <option value="anime">Anime</option>
@@ -257,7 +270,7 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
                   transition={{ duration: 0.3 }}
                   className="pt-4 mt-4 border-t border-cyan-500/20"
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Rating */}
                     <div>
                       <label className="block text-sm text-cyan-100/80 mb-2">Minimum Rating</label>
@@ -285,20 +298,6 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
                         ))}
                       </select>
                     </div>
-
-                    {/* Quality */}
-                    <div>
-                      <label className="block text-sm text-cyan-100/80 mb-2">Quality</label>
-                      <select
-                        value={filters.quality}
-                        onChange={(e) => handleFilterChange('quality', e.target.value)}
-                        className="w-full px-4 py-2.5 rounded-lg bg-black/60 border border-cyan-500/30 text-cyan-100 focus:outline-none focus:border-cyan-400/60 cursor-pointer"
-                      >
-                        {qualities.map(quality => (
-                          <option key={quality} value={quality.toLowerCase()}>{quality}</option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
                 </motion.div>
               )}
@@ -321,14 +320,15 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
         }>
           {results.map((movie, index) => (
             viewMode === 'grid' ? (
-              <MovieCard key={movie.uniqueId} movie={movie} index={index} />
+              <MovieCard key={`${movie.type}_${movie.id}`} movie={movie} index={index} />
             ) : (
               <motion.div
-                key={movie.uniqueId}
+                key={`${movie.type}_${movie.id}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.05 }}
-                className="flex gap-4 p-4 rounded-xl bg-black/40 backdrop-blur-sm border border-cyan-500/20 hover:border-cyan-400/40 transition-all"
+                className="flex gap-4 p-4 rounded-xl bg-black/40 backdrop-blur-sm border border-cyan-500/20 hover:border-cyan-400/40 transition-all cursor-pointer"
+                onClick={() => handleCardClick(movie)}
               >
                 <img
                   src={movie.poster}

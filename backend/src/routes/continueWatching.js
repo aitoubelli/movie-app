@@ -34,22 +34,31 @@ router.get('/', verifyFirebaseToken, async (req, res) => {
             });
         }
 
-        // Prepare TMDB service functions for each content type
-        const getTMDBDetails = (contentType, id) => {
-            if (contentType === 'anime') {
-                // For anime, we might need special handling or use TV service
-                return getDetails('tv', id);
-            }
-            return getDetails(contentType, id);
-        };
-
         // Get content details for each entry
         const contentDetails = [];
 
         for (const entry of continueWatchingEntries) {
             try {
-                const result = await getTMDBDetails(entry.contentType, entry.contentId);
-                if (result.success) {
+                let result;
+
+                if (entry.contentType === 'anime') {
+                    // For anime, fetch from our anime API endpoint (which handles Jikan)
+                    const response = await fetch(`${process.env.BASE_URL || 'http://localhost:3000'}/api/anime/${entry.contentId}`);
+                    const animeData = await response.json();
+                    if (animeData.success) {
+                        result = {
+                            success: true,
+                            data: animeData.data
+                        };
+                    } else {
+                        result = { success: false };
+                    }
+                } else {
+                    // For movies and TV, use TMDB
+                    result = await getDetails(entry.contentType, entry.contentId);
+                }
+
+                if (result && result.success) {
                     // Add content type to the response data for frontend to know which route to use
                     contentDetails.push({
                         ...result.data,

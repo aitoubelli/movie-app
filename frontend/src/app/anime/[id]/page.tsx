@@ -464,7 +464,9 @@ export default function AnimeDetail({ params }: { params: Promise<{ id: string }
               <div className="relative">
                 <div className="absolute inset-0 blur-3xl bg-gradient-to-br from-cyan-400/30 to-violet-400/30" />
                 <ImageWithFallback
-                  src={anime.poster_path ? `https://image.tmdb.org/t/p/w500${anime.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Image'}
+                  src={anime.poster_path && anime.poster_path.startsWith('http')
+                    ? anime.poster_path
+                    : (anime.poster_path ? `https://image.tmdb.org/t/p/w500${anime.poster_path}` : 'https://via.placeholder.com/500x750?text=No+Image')}
                   alt={anime.name}
                   className="relative w-full aspect-[2/3] object-cover rounded-2xl border-2 border-cyan-500/30"
                   style={{ boxShadow: '0 0 60px rgba(6, 182, 212, 0.4)' }}

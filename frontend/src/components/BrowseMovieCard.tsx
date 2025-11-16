@@ -1,7 +1,9 @@
 import { motion } from 'motion/react';
 import { Star, Play } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface Movie {
+  id: string | number;
   title: string;
   poster: string;
   rating: number;
@@ -18,14 +20,26 @@ interface MovieCardProps {
 }
 
 export function MovieCard({ movie, index, showProgress = false }: MovieCardProps) {
+  const router = useRouter();
+
+  const handleCardClick = () => {
+    // Navigate to the appropriate detail page based on content type
+    const baseRoute =
+      movie.type === 'anime' ? '/anime' :
+      movie.type === 'tv' || movie.type === 'series' ? '/series' :
+      '/movies';
+
+    router.push(`${baseRoute}/${movie.id}`);
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: index * 0.05 }}
+      initial={{ opacity: 0, y: 0 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
       whileHover={{ scale: 1.05, zIndex: 10 }}
       className="relative group cursor-pointer"
+      onClick={handleCardClick}
     >
       {/* Card Container */}
       <div className="relative rounded-xl overflow-hidden aspect-[2/3]">
