@@ -58,11 +58,19 @@ interface ContentItem {
 }
 
 export default function Home() {
-  const [activeCategory, setActiveCategory] = useState<'movies' | 'series' | 'anime'>('movies');
+  // Initialize activeCategory from localStorage or default to 'movies'
+  const [activeCategory, setActiveCategory] = useState<'movies' | 'series' | 'anime'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('activeCategory');
+      return (saved === 'movies' || saved === 'series' || saved === 'anime') ? saved : 'movies';
+    }
+    return 'movies';
+  });
   const { user } = useAuth();
 
   const handleCategoryChange = (category: 'movies' | 'series' | 'anime') => {
     setActiveCategory(category);
+    localStorage.setItem('activeCategory', category);
   };
 
   const { data: trendingData, error: trendingError, isLoading: trendingLoading } = useSWR(
