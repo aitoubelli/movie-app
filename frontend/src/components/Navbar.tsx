@@ -151,8 +151,8 @@ export function Navbar() {
             </motion.div>
           </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-6">
+          {/* Desktop Navigation - Large screens */}
+          <div className="hidden lg:flex items-center gap-6">
             {browseCategories.map((category) => (
               <motion.div key={category.name} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 {category.name === 'Random' ? (
@@ -178,16 +178,85 @@ export function Navbar() {
                 )}
               </motion.div>
             ))}
-            {userRole === 'admin' && (
-              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Link href="/admin">
-                  <button className="relative px-4 py-2 text-yellow-300 hover:text-yellow-200 transition-colors group">
-                    Admin
-                    <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-gradient-to-r from-yellow-400 to-yellow-300 group-hover:w-full transition-all duration-300" />
-                  </button>
-                </Link>
-              </motion.div>
-            )}
+          </div>
+
+          {/* Medium Screens - Browse Dropdown */}
+          <div className="hidden md:flex lg:hidden items-center gap-4">
+            <div className="relative">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="flex items-center gap-2 px-3 py-2 text-cyan-100/80 hover:text-cyan-300 transition-colors rounded-lg hover:bg-cyan-500/10"
+              >
+                <Menu className="w-4 h-4" />
+                <span className="text-sm">Browse</span>
+                <motion.div
+                  animate={{ rotate: isMobileMenuOpen ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ChevronDown className="w-4 h-4" />
+                </motion.div>
+              </motion.button>
+
+              {/* Browse Dropdown for Medium Screens */}
+              <AnimatePresence>
+                {isMobileMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                    className="absolute top-12 left-0 w-48 backdrop-blur-xl bg-black/90 border border-cyan-500/30 rounded-2xl overflow-hidden"
+                    style={{ boxShadow: '0 0 40px rgba(6, 182, 212, 0.3)' }}
+                  >
+                    <div className="p-2 space-y-1">
+                      {browseCategories.map((category) => (
+                        <div key={category.name}>
+                          {category.name === 'Random' ? (
+                            <button
+                              onClick={() => {
+                                handleRandom();
+                                setIsMobileMenuOpen(false);
+                              }}
+                              className="w-full text-left px-3 py-2 text-cyan-100/80 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-all text-sm"
+                            >
+                              {category.name}
+                            </button>
+                          ) : category.href ? (
+                            <Link href={category.href}>
+                              <button
+                                onClick={() => setIsMobileMenuOpen(false)}
+                                className="w-full text-left px-3 py-2 text-cyan-100/80 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-all text-sm"
+                              >
+                                {category.name}
+                              </button>
+                            </Link>
+                          ) : (
+                            <button
+                              onClick={() => setIsMobileMenuOpen(false)}
+                              className="w-full text-left px-3 py-2 text-cyan-100/80 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-all text-sm"
+                            >
+                              {category.name}
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {userRole === 'admin' && (
+                        <Link href="/admin">
+                          <button
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="w-full text-left px-3 py-2 text-yellow-300 hover:text-yellow-200 hover:bg-yellow-500/10 rounded-lg transition-all text-sm"
+                          >
+                            Admin
+                          </button>
+                        </Link>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Search and Mobile Menu */}
@@ -322,10 +391,10 @@ export function Navbar() {
               </motion.button>
             )}
 
-            {/* Mobile Menu Button */}
+            {/* Mobile Menu Button - Only for small screens */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden p-2 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-cyan-500/30"
+              className="sm:hidden p-2 rounded-full bg-gradient-to-br from-cyan-500/20 to-violet-500/20 border border-cyan-500/30"
             >
               {isMobileMenuOpen ? (
                 <X className="w-5 h-5 text-cyan-300" />
@@ -371,7 +440,7 @@ export function Navbar() {
               animate={{ opacity: 1, height: 'auto', marginTop: 16 }}
               exit={{ opacity: 0, height: 0, marginTop: 0 }}
               transition={{ duration: 0.3 }}
-              className="md:hidden"
+              className="sm:hidden"
             >
               <div className="flex flex-col gap-2">
                 <div className="px-4 py-2 text-cyan-100/60 text-sm font-medium">Browse</div>

@@ -436,23 +436,8 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
     <div className="min-h-screen bg-[#050510]">
       <Navbar />
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12">
-        {/* Back Button */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative z-40 mb-8 mt-16"
-        >
-          <Link
-            href="/"
-            className="group inline-flex items-center gap-3 px-6 py-3 rounded-xl bg-black/60 backdrop-blur-md border border-cyan-500/30 hover:border-cyan-400/60 transition-all text-cyan-100 hover:text-cyan-300"
-            style={{ boxShadow: '0 0 40px rgba(6, 182, 212, 0.3)' }}
-          >
-            <ArrowLeft className="w-5 h-5 text-cyan-300 group-hover:-translate-x-1 transition-transform duration-300" />
-            <span className="font-medium">Back to Home</span>
-          </Link>
-        </motion.div>
+      <div className="max-w-7xl mx-auto px-4 md:px-8 py-12" style={{ paddingTop: '120px' }}>
+
 
         {/* Hero Section - Two Column Layout */}
         <motion.div
