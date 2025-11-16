@@ -61,7 +61,11 @@ const genreMap = {
 // Map to TMDB genres
 const getGenreId = (genreName, type) => {
     if (genreName === 'all') return null;
-    return genreMap[type]?.[genreName] || null;
+
+    // Handle case-insensitive lookup
+    const normalizedGenre = genreName.charAt(0).toUpperCase() + genreName.slice(1).toLowerCase();
+
+    return genreMap[type]?.[normalizedGenre] || null;
 };
 
 router.get('/', async (req, res) => {
