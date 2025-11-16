@@ -1,23 +1,13 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SlidersHorizontal, X, ChevronDown, Grid3x3, List } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { MovieCard } from '@/components//BrowseMovieCard';
 import { getApiUrl } from '@/lib/utils';
 
-interface BrowsePageProps {
-  initialFilters?: {
-    category?: string;
-    year?: string;
-    genre?: string;
-    search?: string;
-    type?: 'all' | 'movie' | 'tv' | 'anime';
-  };
-}
-
-export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
+export function BrowsePage() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [results, setResults] = useState<any[]>([]);
@@ -27,6 +17,8 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [appending, setAppending] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isUpdatingUrl = useRef(false);
 
   const handleCardClick = (movie: any) => {
     const baseRoute =
@@ -39,12 +31,12 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
 
   // Filters
   const [filters, setFilters] = useState({
-    search: initialFilters.search || '',
-    type: initialFilters.type || 'movie',
-    genre: initialFilters.genre || 'all',
-    year: initialFilters.year || 'all',
+    search: '',
+    type: 'movie',
+    genre: 'all',
+    year: 'all',
     rating: 'all',
-    sortBy: initialFilters.category || 'popular',
+    sortBy: 'popular',
     language: 'all'
   });
 
@@ -64,11 +56,19 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
     setResults([]);
     setCurrentPage(1);
     setAppending(false); // Reset appending state
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters(prev => {
+      const newFilters = { ...prev, [key]: value };
+      // Update URL after state change
+      setTimeout(() => updateUrlFromFilters(), 0);
+      return newFilters;
+    });
   };
 
   const resetFilters = () => {
-    setFilters({
+    setResults([]);
+    setCurrentPage(1);
+
+    const resetState = {
       search: '',
       type: 'movie',
       genre: 'all',
@@ -76,8 +76,55 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
       rating: 'all',
       sortBy: 'popular',
       language: 'all'
-    });
-    setCurrentPage(1);
+    };
+    setFilters(resetState);
+
+    // Update URL to remove all filters
+    isUpdatingUrl.current = true;
+    router.replace('/browse', { scroll: false });
+    // Reset the flag after a brief delay to allow URL to update
+    setTimeout(() => {
+      isUpdatingUrl.current = false;
+    }, 10);
+  };
+
+  // Initialize filters from URL on mount
+  useEffect(() => {
+    const type = searchParams.get('type');
+    const genre = searchParams.get('genre');
+    const year = searchParams.get('year');
+    const sortBy = searchParams.get('sortBy');
+    const rating = searchParams.get('rating');
+    const language = searchParams.get('language');
+    const search = searchParams.get('search');
+
+    const urlFilters = {
+      search: search || '',
+      type: type && ['all', 'movie', 'tv', 'anime'].includes(type) ? type as 'all' | 'movie' | 'tv' | 'anime' : 'movie',
+      genre: genre || 'all',
+      year: year || 'all',
+      rating: rating || 'all',
+      sortBy: sortBy || 'popular',
+      language: language || 'all',
+    } as const;
+
+    setFilters(urlFilters);
+  }, []); // Only run on mount
+
+  // Update URL when filters change (after user interaction)
+  const updateUrlFromFilters = () => {
+    const params = new URLSearchParams();
+
+    if (filters.type !== 'movie') params.set('type', filters.type);
+    if (filters.genre !== 'all') params.set('genre', filters.genre);
+    if (filters.year !== 'all') params.set('year', filters.year);
+    if (filters.sortBy !== 'popular') params.set('sortBy', filters.sortBy);
+    if (filters.rating !== 'all') params.set('rating', filters.rating);
+    if (filters.language !== 'all') params.set('language', filters.language);
+    if (filters.search) params.set('search', filters.search);
+
+    const newPath = params.toString() ? `/browse?${params.toString()}` : '/browse';
+    router.replace(newPath, { scroll: false });
   };
 
   const fetchBrowseData = async (page = 1, appendResults = false) => {
@@ -121,21 +168,7 @@ export function BrowsePage({ initialFilters = {} }: BrowsePageProps) {
     }
   };
 
-  // Update filters when initialFilters prop changes
-  useEffect(() => {
-    setResults([]); // Clear existing results when filters change
-    setFilters(prev => ({
-      ...prev,
-      search: initialFilters.search || '',
-      type: initialFilters.type || 'movie',
-      genre: initialFilters.genre || 'all',
-      year: initialFilters.year || 'all',
-      sortBy: initialFilters.category || 'popular',
-      rating: 'all', // Keep other advanced filters as default
-      language: 'all',
-    }));
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [initialFilters]);
+
 
   // Fetch data when filters or page changes (but not during append)
   useEffect(() => {
