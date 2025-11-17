@@ -50,7 +50,7 @@ export default function AdminDashboard() {
 
     try {
       const token = await user.getIdToken();
-      const response = await fetch("http://localhost:8000/api/auth/me", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/me`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -77,7 +77,7 @@ export default function AdminDashboard() {
 
   const fetchFeaturedMovies = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/featured");
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/featured`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch featured movies");
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
     setIsLoading(true);
     try {
       const token = await user!.getIdToken();
-      const response = await fetch("http://localhost:8000/api/admin/featured", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/featured`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
     setIsLoading(true);
     try {
       const token = await user!.getIdToken();
-      const response = await fetch(`http://localhost:8000/api/admin/featured/${movieIdToRemove}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/featured/${movieIdToRemove}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

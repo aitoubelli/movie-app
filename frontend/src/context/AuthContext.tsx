@@ -113,7 +113,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('http://localhost:8000/api/auth/profile', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${idToken}`,
         },

@@ -36,7 +36,7 @@ export default function Dashboard() {
 
     try {
       const token = await user.getIdToken();
-      const response = await fetch("http://localhost:8000/api/dashboard", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/dashboard`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

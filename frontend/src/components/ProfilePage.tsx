@@ -89,7 +89,7 @@ export function ProfilePage() {
         requestBody.username = value.trim();
       }
 
-      const response = await fetch('http://localhost:8000/api/auth/profile', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -63,7 +63,7 @@ export function MovieCard({ movie, index, category = 'movies', enableWatchlistTo
   };
 
   const { data: watchlistData, mutate: mutateWatchlist } = useSWR(
-    user && enableWatchlistToggle ? 'http://localhost:8000/api/watchlist' : null,
+    user && enableWatchlistToggle ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/watchlist` : null,
     (url: string) => authenticatedFetcher(url, user)
   );
 
@@ -91,7 +91,7 @@ export function MovieCard({ movie, index, category = 'movies', enableWatchlistTo
     try {
       const idToken = await user.getIdToken();
       const response = await fetch(
-        newIsInWatchlist ? 'http://localhost:8000/api/watchlist' : `http://localhost:8000/api/watchlist/${movie.id}`,
+        newIsInWatchlist ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/watchlist` : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/watchlist/${movie.id}`,
         {
           method: newIsInWatchlist ? 'POST' : 'DELETE',
           headers: {

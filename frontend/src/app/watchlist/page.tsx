@@ -40,7 +40,7 @@ export default function WatchlistPage() {
 
   // Fetch watchlist movie IDs
   const { data: watchlistData, error: watchlistError, isLoading: watchlistLoading } = useSWR(
-    user ? 'http://localhost:8000/api/watchlist' : null,
+    user ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/watchlist` : null,
     (url: string) => authenticatedFetcher(url, user)
   );
 
@@ -48,7 +48,7 @@ export default function WatchlistPage() {
 
   // Fetch full movie data for each movie ID
   const { data: moviesData, error: moviesError, isLoading: moviesLoading } = useSWR(
-    movieIds.length > 0 ? movieIds.map((id: number) => `http://localhost:8000/api/movies/${id}`) : null,
+    movieIds.length > 0 ? movieIds.map((id: number) => `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/movies/${id}`) : null,
     async (urls: string[]) => {
       const responses = await Promise.all(urls.map(url => fetch(url)));
       const data = await Promise.all(responses.map(res => res.json()));

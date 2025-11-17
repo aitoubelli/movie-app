@@ -121,7 +121,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
     try {
       const idToken = await user.getIdToken();
       const response = await fetch(
-        newIsInWatchlist ? 'http://localhost:8000/api/watchlist' : `http://localhost:8000/api/watchlist/${resolvedParams.id}`,
+        newIsInWatchlist ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/watchlist` : `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/watchlist/${resolvedParams.id}`,
         {
           method: newIsInWatchlist ? 'POST' : 'DELETE',
           headers: {
@@ -473,7 +473,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
                     if (user) {
                       try {
                         const idToken = await user.getIdToken();
-                        const response = await fetch('http://localhost:8000/api/continue-watching', {
+                        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/continue-watching`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
