@@ -34,6 +34,17 @@ if (!admin.apps.length) {
     }
 }
 
+// Helper function to generate random username
+const generateRandomUsername = () => {
+    const randomNum = Math.floor(1000 + Math.random() * 9000); // 4-digit number
+    return `CineFan#${randomNum}`;
+};
+
+// Helper function to generate random avatar index
+const getRandomAvatar = () => {
+    return Math.floor(Math.random() * 20); // 0-19 (20 avatars available)
+};
+
 export const verifyFirebaseToken = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
@@ -49,25 +60,44 @@ export const verifyFirebaseToken = async (req, res, next) => {
         }
 
         const decodedToken = await admin.auth().verifyIdToken(token);
+        const uid = decodedToken.uid;
+        const email = decodedToken.email;
+        const fullName = decodedToken.name || decodedToken.displayName || '';
 
-        req.user = {
-            uid: decodedToken.uid,
-            email: decodedToken.email,
-            name: decodedToken.name || decodedToken.displayName || '',
-        };
+        // Find or create user with proper error handling
+        let user = await User.findOne({ firebaseUid: uid });
 
-        let user = await User.findOne({ firebaseUid: decodedToken.uid });
         if (!user) {
-            user = new User({
-                firebaseUid: decodedToken.uid,
-                email: decodedToken.email,
-                name: decodedToken.name || decodedToken.displayName || '',
-                username: '',
-                avatar: 0,
-                role: 'user',
-            });
-            await user.save();
+            try {
+                // Create new user with random username and avatar
+                user = new User({
+                    firebaseUid: uid,
+                    email: email,
+                    name: fullName,
+                    username: generateRandomUsername(),
+                    avatar: getRandomAvatar(),
+                    role: 'user',
+                });
+                await user.save();
+                console.log(`Created new user: ${user.email} with username ${user.username}`);
+            } catch (dbError) {
+                // Handle potential race condition or other DB errors
+                if (dbError.code === 11000) {
+                    // Duplicate key error - another request might have created the user
+                    user = await User.findOne({ firebaseUid: uid });
+                    if (!user) {
+                        console.error('Race condition detected but user still not found:', dbError);
+                        return res.status(500).json({ error: 'Database error occurred' });
+                    }
+                } else {
+                    console.error('Database error creating user:', dbError);
+                    return res.status(500).json({ error: 'Database error occurred' });
+                }
+            }
         }
+
+        // Attach full user object to request
+        req.user = user;
 
         next();
     } catch (error) {
