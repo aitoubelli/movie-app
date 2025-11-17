@@ -9,7 +9,7 @@ router.get('/dashboard', verifyFirebaseToken, (req, res) => {
     res.json({
         message: 'Access granted',
         user: {
-            uid: req.user.uid,
+            uid: req.user.firebaseUid,
             email: req.user.email,
         },
     });
@@ -18,7 +18,7 @@ router.get('/dashboard', verifyFirebaseToken, (req, res) => {
 // Protected route: GET /api/auth/me
 router.get('/me', verifyFirebaseToken, async (req, res) => {
     try {
-        const user = await User.findOne({ firebaseUid: req.user.uid });
+        const user = await User.findOne({ firebaseUid: req.user.firebaseUid });
 
         if (!user) {
             return res.status(404).json({ error: 'User not found' });
@@ -41,12 +41,12 @@ router.get('/me', verifyFirebaseToken, async (req, res) => {
 // Protected route: GET /api/profile
 router.get('/profile', verifyFirebaseToken, async (req, res) => {
     try {
-        let user = await User.findOne({ firebaseUid: req.user.uid });
+        let user = await User.findOne({ firebaseUid: req.user.firebaseUid });
 
         // If user doesn't exist, create one with Firebase data
         if (!user) {
             user = new User({
-                firebaseUid: req.user.uid,
+                firebaseUid: req.user.firebaseUid,
                 email: req.user.email || '',
                 name: req.user.name || '',
                 username: '',
@@ -106,7 +106,7 @@ router.put('/profile', verifyFirebaseToken, async (req, res) => {
         }
 
         const user = await User.findOneAndUpdate(
-            { firebaseUid: req.user.uid },
+            { firebaseUid: req.user.firebaseUid },
             updateData,
             { new: true, runValidators: true },
         );
