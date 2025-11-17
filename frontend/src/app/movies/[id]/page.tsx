@@ -170,7 +170,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/comments', {
+      const response = await fetch(getApiUrl('/api/comments'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -217,7 +217,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch('/api/comments/reply', {
+      const response = await fetch(getApiUrl('/api/comments/reply'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -260,7 +260,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`/api/comments/${commentId}/like`, {
+      const response = await fetch(getApiUrl(`/api/comments/${commentId}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -286,7 +286,7 @@ export default function MovieDetail({ params }: { params: Promise<{ id: string }
 
     try {
       const idToken = await user.getIdToken();
-      const response = await fetch(`/api/comments/reply/${replyId}/like`, {
+      const response = await fetch(getApiUrl(`/api/comments/reply/${replyId}/like`), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

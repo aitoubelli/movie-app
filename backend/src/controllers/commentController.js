@@ -20,14 +20,18 @@ const validateText = (text) => {
 export const postComment = async (req, res) => {
     try {
         const { contentId, contentType, text } = req.body;
-        const userId = req.user.uid;
+        const userId = req.user ? req.user.firebaseUid : null;
+
+        if (!req.user || !userId) {
+            return res.status(401).json({ error: 'Authentication required' });
+        }
 
         if (!validateContentId(contentId)) {
             return res.status(400).json({ error: 'Invalid contentId. Must be a positive integer.' });
         }
 
         if (!validateContentType(contentType)) {
-            return res.status(400).json({ error: 'Invalid contentType. Must be either "movie" or "series".' });
+            return res.status(400).json({ error: 'Invalid contentType. Must be "movie", "series", or "anime".' });
         }
 
         if (!validateText(text)) {
@@ -109,7 +113,7 @@ export const getCommentsByContent = async (req, res) => {
 export const postReply = async (req, res) => {
     try {
         const { commentId, text } = req.body;
-        const userId = req.user.uid;
+        const userId = req.user.firebaseUid;
 
         if (!commentId) {
             return res.status(400).json({ error: 'commentId is required' });
@@ -157,7 +161,7 @@ export const postReply = async (req, res) => {
 export const likeComment = async (req, res) => {
     try {
         const { commentId } = req.params;
-        const userId = req.user.uid;
+        const userId = req.user.firebaseUid;
 
         if (!commentId) {
             return res.status(400).json({ error: 'commentId is required' });
@@ -194,7 +198,7 @@ export const likeComment = async (req, res) => {
 export const likeReply = async (req, res) => {
     try {
         const { replyId } = req.params;
-        const userId = req.user.uid;
+        const userId = req.user.firebaseUid;
 
         if (!replyId) {
             return res.status(400).json({ error: 'replyId is required' });
