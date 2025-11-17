@@ -23,7 +23,7 @@ app.use(
     cors({
         origin: [
             'http://localhost:3000',
-            'https://cinestream.pages.dev'],
+            'https://cineova.pages.dev'],
         credentials: true,
     }),
 );
