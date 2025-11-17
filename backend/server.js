@@ -23,7 +23,7 @@ app.use(
     cors({
         origin: [
             'http://localhost:3000',
-            'https://cineova.pages.dev'],
+            'https://cineova.vercel.app'],
         credentials: true,
     }),
 );
