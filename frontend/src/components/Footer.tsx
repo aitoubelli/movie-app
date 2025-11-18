@@ -5,9 +5,8 @@ import Link from 'next/link';
 export function Footer() {
   const links = {
     'My Other Work': [
-      { name: 'About Me', href: '/about' },
-      { name: 'Portfolio', href: '#' },
-      { name: 'Blog', href: '#' },
+      { name: 'Portfolio', href: 'https://aitoubelli.pages.dev' },
+      { name: 'Blog', href: 'https://aitcodespace.vercel.app' },
     ]
   };
 
@@ -39,7 +38,7 @@ export function Footer() {
                   <div className="absolute inset-0 blur-xl bg-cyan-400/50" />
                 </div>
                 <span className="text-xl bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-                  CineStream
+                  Cineova
                 </span>
               </motion.div>
             </Link>
@@ -98,7 +97,7 @@ export function Footer() {
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-cyan-500/20 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-cyan-100/50 text-sm">
-            © 2024 CineStream. Made by Salah. All rights reserved.
+            © 2024 Cineova. Made by Salah. All rights reserved.
           </p>
           <div className="flex items-center gap-2 text-sm text-cyan-100/50">
             <span>Powered by</span>

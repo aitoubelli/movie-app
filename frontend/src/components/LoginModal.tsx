@@ -117,7 +117,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 {/* Header */}
                 <div className="text-center mb-8">
                   <h2 className="text-3xl mb-2 bg-gradient-to-r from-cyan-300 to-violet-300 bg-clip-text text-transparent">
-                    {isLogin ? 'Welcome Back' : 'Join CineStream'}
+                    {isLogin ? 'Welcome Back' : 'Join Cineova'}
                   </h2>
                   <p className="text-cyan-100/60">
                     {isLogin ? 'Sign in to continue your journey' : 'Create your account to get started'}
